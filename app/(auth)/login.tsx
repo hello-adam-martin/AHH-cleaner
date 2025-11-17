@@ -4,6 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { useCleanerStore } from '@/stores/cleanerStore';
 import { useAuthStore } from '@/stores/authStore';
+import { usePropertiesStore } from '@/stores/propertiesStore';
 import { CleanerBadge } from '@/components/CleanerBadge';
 import { theme } from '@/constants/theme';
 import type { Cleaner } from '@/types';
@@ -11,6 +12,7 @@ import type { Cleaner } from '@/types';
 export default function LoginScreen() {
   const cleaners = useCleanerStore((state) => state.cleaners);
   const login = useAuthStore((state) => state.login);
+  const refreshFromAirtable = usePropertiesStore((state) => state.refreshFromAirtable);
 
   const [selectedCleaner, setSelectedCleaner] = useState<Cleaner | null>(null);
   const [pin, setPin] = useState('');
@@ -48,12 +50,14 @@ export default function LoginScreen() {
     setError('');
   };
 
-  const handleSubmit = (pinToSubmit: string = pin) => {
+  const handleSubmit = async (pinToSubmit: string = pin) => {
     if (!selectedCleaner || pinToSubmit.length !== 4) return;
 
     const success = login(selectedCleaner, pinToSubmit);
 
     if (success) {
+      // Refresh properties data from Airtable on successful login
+      await refreshFromAirtable();
       router.replace('/(main)/properties');
     } else {
       setError('Incorrect PIN');

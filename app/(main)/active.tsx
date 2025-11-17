@@ -197,7 +197,7 @@ export default function ActiveCleaningScreen() {
 
         <View style={styles.cleanerIndicator}>
           <Text style={styles.cleanerLabel}>Cleaner:</Text>
-          <Text style={styles.cleanerNameText}>{selectedCleaner.name}</Text>
+          <Text style={styles.cleanerNameText}>{authenticatedCleaner?.name}</Text>
         </View>
 
         <View style={styles.timerContainer}>
