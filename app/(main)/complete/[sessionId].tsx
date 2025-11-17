@@ -7,6 +7,7 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import { TimerDisplay } from '@/components/TimerDisplay';
 import { useTimer } from '@/hooks/useTimer';
+import { useHelperTimer } from '@/hooks/useHelperTimer';
 import { formatTime } from '@/utils/time';
 import { theme } from '@/constants/theme';
 import { getCategoriesWithItems } from '@/data/consumables';
@@ -19,15 +20,13 @@ export default function CompleteCleaningScreen() {
   const refreshFromAirtable = usePropertiesStore((state) => state.refreshFromAirtable);
   const activeSessions = useSessionStore((state) => state.activeSessions);
   const completeSession = useSessionStore((state) => state.completeSession);
+  const resumeSession = useSessionStore((state) => state.resumeSession);
   const addCompletedSession = useHistoryStore((state) => state.addCompletedSession);
 
   const session = activeSessions.find((s) => s.id === sessionId);
   const property = properties.find((p) => p.id === session?.propertyId);
-  const timerElapsedTime = useTimer(session);
-
-  // Freeze the timer at the final time when completing
-  const [finalTime, setFinalTime] = useState<number | null>(null);
-  const elapsedTime = finalTime !== null ? finalTime : timerElapsedTime;
+  const elapsedTime = useTimer(session);
+  const helperElapsedTime = useHelperTimer(session);
 
   const [notes, setNotes] = useState('');
   const [isAdjustingTime, setIsAdjustingTime] = useState(false);
@@ -54,11 +53,16 @@ export default function CompleteCleaningScreen() {
     setIsAdjustingTime(false);
   };
 
+  const handleBack = () => {
+    if (session) {
+      // Resume the session when going back
+      resumeSession(session.id);
+    }
+    router.push('/(main)/active');
+  };
+
   const handleComplete = async () => {
     if (isSyncing) return; // Prevent double-clicking
-
-    // Freeze the timer at the current time
-    setFinalTime(elapsedTime);
 
     setIsSyncing(true);
     setSyncStatus('syncing');
@@ -98,7 +102,7 @@ export default function CompleteCleaningScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Complete Cleaning</Text>
@@ -115,7 +119,19 @@ export default function CompleteCleaningScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Total Time</Text>
-          <TimerDisplay elapsedTime={elapsedTime} size="large" />
+          <TimerDisplay elapsedTime={elapsedTime + helperElapsedTime} size="large" />
+          {helperElapsedTime > 0 && (
+            <View style={styles.timeBreakdown}>
+              <View style={styles.breakdownRow}>
+                <Text style={styles.breakdownLabel}>Cleaner:</Text>
+                <TimerDisplay elapsedTime={elapsedTime} size="medium" />
+              </View>
+              <View style={styles.breakdownRow}>
+                <Text style={styles.breakdownLabel}>Helper:</Text>
+                <TimerDisplay elapsedTime={helperElapsedTime} size="medium" />
+              </View>
+            </View>
+          )}
 
           {!isAdjustingTime ? (
             <TouchableOpacity
@@ -286,6 +302,23 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_700Bold',
     color: theme.colors.text,
     marginBottom: 16,
+  },
+  timeBreakdown: {
+    marginTop: 20,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 20,
+    gap: 16,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  breakdownLabel: {
+    fontSize: 16,
+    fontFamily: 'Nunito_700Bold',
+    color: '#666',
   },
   adjustButton: {
     marginTop: 16,

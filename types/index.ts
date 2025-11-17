@@ -53,6 +53,11 @@ export interface CleaningSession {
   consumables: Consumables;
   status: 'active' | 'paused' | 'completed';
   notes?: string;
+  // Helper tracking
+  helperStartTime?: number; // When helper timer was started
+  helperPausedAt?: number; // When helper timer was paused
+  helperTotalPausedDuration: number; // Total time helper was paused
+  helperActive: boolean; // Whether helper timer is currently running
 }
 
 export interface PropertyWithStatus extends Property {

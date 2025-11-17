@@ -6,7 +6,9 @@ import { usePropertiesStore } from '@/stores/propertiesStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { TimerDisplay } from '@/components/TimerDisplay';
 import { ConsumableCounter } from '@/components/ConsumableCounter';
+import { CleanerBadge } from '@/components/CleanerBadge';
 import { useTimer } from '@/hooks/useTimer';
+import { useHelperTimer } from '@/hooks/useHelperTimer';
 import { theme } from '@/constants/theme';
 import { getCategoriesWithItems } from '@/data/consumables';
 import * as Haptics from 'expo-haptics';
@@ -18,6 +20,8 @@ export default function ActiveCleaningScreen() {
   const pauseSession = useSessionStore((state) => state.pauseSession);
   const resumeSession = useSessionStore((state) => state.resumeSession);
   const updateConsumables = useSessionStore((state) => state.updateConsumables);
+  const startHelperTimer = useSessionStore((state) => state.startHelperTimer);
+  const stopHelperTimer = useSessionStore((state) => state.stopHelperTimer);
 
   const cleanerSessions = authenticatedCleaner
     ? activeSessions.filter((s) => s.cleanerId === authenticatedCleaner.id)
@@ -30,12 +34,13 @@ export default function ActiveCleaningScreen() {
   const session = cleanerSessions.find((s) => s.id === selectedSessionId) || cleanerSessions[0] || null;
   const property = properties.find((p) => p.id === session?.propertyId);
   const elapsedTime = useTimer(session);
+  const helperElapsedTime = useHelperTimer(session);
 
   const categoriesWithItems = getCategoriesWithItems();
 
-  // Track which categories are expanded (all expanded by default)
+  // Track which categories are expanded (all collapsed by default)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    new Set(categoriesWithItems.map(c => c.id))
+    new Set()
   );
 
   // Track scroll position for sticky header
@@ -103,7 +108,35 @@ export default function ActiveCleaningScreen() {
       } catch (e) {
         // Haptics not available on web
       }
+
+      // Pause the cleaner timer (but don't stop helper - just navigate for review)
+      if (session.status !== 'paused') {
+        pauseSession(session.id);
+      }
+
       router.push(`/(main)/complete/${session.id}`);
+    }
+  };
+
+  const handleStartHelper = async () => {
+    if (session) {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch (e) {
+        // Haptics not available on web
+      }
+      startHelperTimer(session.id);
+    }
+  };
+
+  const handleStopHelper = async () => {
+    if (session) {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch (e) {
+        // Haptics not available on web
+      }
+      stopHelperTimer(session.id);
     }
   };
 
@@ -191,22 +224,33 @@ export default function ActiveCleaningScreen() {
           </View>
         )}
 
-        <Text style={styles.label}>Currently Cleaning</Text>
-        <Text style={styles.propertyName}>{property.name}</Text>
-        <Text style={styles.address}>{property.address}</Text>
-
-        <View style={styles.cleanerIndicator}>
-          <Text style={styles.cleanerLabel}>Cleaner:</Text>
-          <Text style={styles.cleanerNameText}>{authenticatedCleaner?.name}</Text>
+        <View style={styles.propertyHeader}>
+          <View style={styles.propertyHeaderLeft}>
+            <Text style={styles.propertyName}>{property.name}</Text>
+            <Text style={styles.address}>{property.address}</Text>
+          </View>
+          {authenticatedCleaner && (
+            <CleanerBadge cleaner={authenticatedCleaner} size="small" />
+          )}
         </View>
 
-        <View style={styles.timerContainer}>
-          <TimerDisplay elapsedTime={elapsedTime} size="large" />
+        <View style={styles.timersCard}>
           {isPaused && (
-            <View style={styles.pausedBadge}>
-              <Text style={styles.pausedText}>PAUSED</Text>
+            <View style={styles.pausedBanner}>
+              <Text style={styles.pausedBannerText}>⏸ PAUSED</Text>
             </View>
           )}
+          <View style={styles.timersRow}>
+            <View style={styles.timerColumn}>
+              <Text style={styles.timerLabel}>Cleaner Time</Text>
+              <TimerDisplay elapsedTime={elapsedTime} size="medium" />
+            </View>
+            <View style={styles.timerDivider} />
+            <View style={styles.timerColumn}>
+              <Text style={styles.timerLabel}>Helper Time</Text>
+              <TimerDisplay elapsedTime={helperElapsedTime} size="medium" />
+            </View>
+          </View>
         </View>
 
         <View style={styles.consumablesSection}>
@@ -264,21 +308,34 @@ export default function ActiveCleaningScreen() {
       {/* Sticky Footer - always visible */}
       <View style={styles.stickyFooter}>
         <View style={styles.controls}>
-          {isPaused ? (
+          <View style={styles.controlRow}>
+            {isPaused ? (
+              <TouchableOpacity
+                style={styles.resumeButton}
+                onPress={handleResume}
+              >
+                <Text style={styles.buttonText}>Resume</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.pauseButton}
+                onPress={handlePause}
+              >
+                <Text style={styles.buttonText}>Pause</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
-              style={styles.resumeButton}
-              onPress={handleResume}
+              style={[
+                styles.helperButton,
+                session.helperActive ? styles.helperButtonStop : styles.helperButtonStart
+              ]}
+              onPress={session.helperActive ? handleStopHelper : handleStartHelper}
             >
-              <Text style={styles.buttonText}>Resume</Text>
+              <Text style={styles.buttonText}>
+                {session.helperActive ? 'Stop Helper' : 'Start Helper'}
+              </Text>
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={styles.pauseButton}
-              onPress={handlePause}
-            >
-              <Text style={styles.buttonText}>Pause</Text>
-            </TouchableOpacity>
-          )}
+          </View>
           <TouchableOpacity
             style={styles.completeButton}
             onPress={handleComplete}
@@ -300,8 +357,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 24,
-    paddingTop: 40,
+    padding: 16,
+    paddingTop: 20,
     paddingBottom: 140, // Extra padding for sticky footer
   },
   sessionSelector: {
@@ -341,71 +398,92 @@ const styles = StyleSheet.create({
   sessionButtonTextActive: {
     color: '#2196F3',
   },
-  label: {
-    fontSize: 14,
-    fontFamily: 'Nunito_600SemiBold',
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 8,
+  propertyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    gap: 12,
+  },
+  propertyHeaderLeft: {
+    flex: 1,
   },
   propertyName: {
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: 'Nunito_700Bold',
     color: theme.colors.text,
-    textAlign: 'center',
     marginBottom: 4,
   },
   address: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'Nunito_400Regular',
     color: '#666',
-    textAlign: 'center',
+  },
+  timersCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
     marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  cleanerIndicator: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 32,
-  },
-  cleanerLabel: {
-    fontSize: 13,
-    fontFamily: 'Nunito_600SemiBold',
-    color: '#999',
-  },
-  cleanerNameText: {
-    fontSize: 14,
-    fontFamily: 'Nunito_700Bold',
-    color: theme.colors.text,
-  },
-  timerContainer: {
-    alignItems: 'center',
-    marginBottom: 48,
-  },
-  pausedBadge: {
-    marginTop: 16,
+  pausedBanner: {
     backgroundColor: '#FF9800',
-    paddingHorizontal: 16,
+    marginHorizontal: -20,
+    marginTop: -20,
+    marginBottom: 16,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    alignItems: 'center',
   },
-  pausedText: {
+  pausedBannerText: {
     fontSize: 12,
     fontFamily: 'Nunito_700Bold',
     color: '#FFFFFF',
     letterSpacing: 1,
   },
+  timersRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timerColumn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  timerLabel: {
+    fontSize: 12,
+    fontFamily: 'Nunito_700Bold',
+    color: '#666',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  timerDivider: {
+    width: 1,
+    height: 60,
+    backgroundColor: '#E0E0E0',
+    marginHorizontal: 16,
+  },
   controls: {
     gap: 12,
   },
+  controlRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
   pauseButton: {
+    flex: 1,
     backgroundColor: '#FF9800',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   resumeButton: {
+    flex: 1,
     backgroundColor: '#4CAF50',
     paddingVertical: 16,
     borderRadius: 12,
@@ -423,16 +501,28 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   consumablesSection: {
-    marginBottom: 24,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: 'Nunito_700Bold',
     color: theme.colors.text,
-    marginBottom: 20,
+    marginBottom: 16,
+  },
+  helperButton: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  helperButtonStart: {
+    backgroundColor: '#4CAF50',
+  },
+  helperButtonStop: {
+    backgroundColor: '#F44336',
   },
   categorySection: {
-    marginBottom: 16,
+    marginBottom: 12,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     overflow: 'hidden',
@@ -441,7 +531,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: 12,
     backgroundColor: '#F9F9F9',
   },
   categoryHeaderLeft: {
@@ -474,12 +564,12 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   consumablesGrid: {
-    padding: 16,
+    padding: 12,
     paddingTop: 8,
-    gap: 12,
+    gap: 10,
   },
   notesSection: {
-    marginTop: 32,
+    marginTop: 16,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,

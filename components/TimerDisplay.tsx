@@ -3,11 +3,13 @@ import { formatDuration } from '@/utils/time';
 
 interface TimerDisplayProps {
   elapsedTime: number;
-  size?: 'small' | 'large';
+  size?: 'small' | 'medium' | 'large';
 }
 
 export function TimerDisplay({ elapsedTime, size = 'large' }: TimerDisplayProps) {
-  const isLarge = size === 'large';
+  const fontSize = size === 'large' ? styles.timeLarge : size === 'medium' ? styles.timeMedium : styles.timeSmall;
+  const separatorSize = size === 'large' ? styles.separatorLarge : size === 'medium' ? styles.separatorMedium : styles.separatorSmall;
+  const showLabels = size === 'large';
 
   const totalSeconds = Math.floor(elapsedTime / 1000);
   const hours = Math.floor(totalSeconds / 3600);
@@ -19,23 +21,23 @@ export function TimerDisplay({ elapsedTime, size = 'large' }: TimerDisplayProps)
   return (
     <View style={styles.container}>
       <View style={styles.timeContainer}>
-        <Text style={[styles.timeDigits, isLarge ? styles.timeLarge : styles.timeSmall]}>
+        <Text style={[styles.timeDigits, fontSize]}>
           {formatNumber(hours)}
         </Text>
-        <Text style={[styles.separator, isLarge ? styles.separatorLarge : styles.separatorSmall]}>
+        <Text style={[styles.separator, separatorSize]}>
           :
         </Text>
-        <Text style={[styles.timeDigits, isLarge ? styles.timeLarge : styles.timeSmall]}>
+        <Text style={[styles.timeDigits, fontSize]}>
           {formatNumber(minutes)}
         </Text>
-        <Text style={[styles.separator, isLarge ? styles.separatorLarge : styles.separatorSmall]}>
+        <Text style={[styles.separator, separatorSize]}>
           :
         </Text>
-        <Text style={[styles.timeDigits, isLarge ? styles.timeLarge : styles.timeSmall]}>
+        <Text style={[styles.timeDigits, fontSize]}>
           {formatNumber(seconds)}
         </Text>
       </View>
-      {isLarge && (
+      {showLabels && (
         <View style={styles.labelsContainer}>
           <Text style={styles.label}>HRS</Text>
           <Text style={[styles.label, styles.labelMiddle]}>MIN</Text>
@@ -61,6 +63,9 @@ const styles = StyleSheet.create({
   timeLarge: {
     fontSize: 56,
   },
+  timeMedium: {
+    fontSize: 36,
+  },
   timeSmall: {
     fontSize: 24,
   },
@@ -71,6 +76,10 @@ const styles = StyleSheet.create({
   separatorLarge: {
     fontSize: 56,
     marginHorizontal: 4,
+  },
+  separatorMedium: {
+    fontSize: 36,
+    marginHorizontal: 3,
   },
   separatorSmall: {
     fontSize: 24,

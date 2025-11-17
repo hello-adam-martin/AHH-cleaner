@@ -305,19 +305,24 @@ export async function updateBookingWithCleaningData(
 
     // 3. Calculate session values
     const sessionDurationMs = session.duration; // Duration in milliseconds
-    const sessionDurationSeconds = sessionDurationMs / 1000; // Convert ms to seconds
+    const helperDurationMs = session.helperTotalPausedDuration || 0; // Helper duration in milliseconds
+    const totalSessionDurationMs = sessionDurationMs + helperDurationMs; // Total time including helper
+    const totalSessionDurationSeconds = totalSessionDurationMs / 1000; // Convert ms to seconds
     const sessionCost = calculateConsumablesTotalCost(session.consumables);
 
     // 4. Calculate new totals (in seconds for duration)
-    const newDurationSeconds = Math.round(existingDurationSeconds + sessionDurationSeconds);
+    const newDurationSeconds = Math.round(existingDurationSeconds + totalSessionDurationSeconds);
     const newCost = Math.round((existingCost + sessionCost) * 100) / 100; // Round to 2 decimals
 
     // For logging, convert to hours for readability
     const existingDurationHours = existingDurationSeconds / 3600;
-    const sessionDurationHours = sessionDurationSeconds / 3600;
+    const sessionDurationHours = sessionDurationMs / 1000 / 3600;
+    const helperDurationHours = helperDurationMs / 1000 / 3600;
+    const totalSessionDurationHours = totalSessionDurationMs / 1000 / 3600;
     const newDurationHours = newDurationSeconds / 3600;
 
-    console.log(`  → Adding ${sessionDurationHours.toFixed(2)}h to ${existingDurationHours.toFixed(2)}h = ${newDurationHours.toFixed(2)}h`);
+    console.log(`  → Cleaner time: ${sessionDurationHours.toFixed(2)}h, Helper time: ${helperDurationHours.toFixed(2)}h`);
+    console.log(`  → Adding ${totalSessionDurationHours.toFixed(2)}h to ${existingDurationHours.toFixed(2)}h = ${newDurationHours.toFixed(2)}h`);
     console.log(`  → Adding $${sessionCost.toFixed(2)} to $${existingCost.toFixed(2)} = $${newCost.toFixed(2)}`);
 
     // 5. Update the booking record (write duration in seconds)

@@ -31,6 +31,12 @@ function SessionCard({ session }: { session: CompletedSession }) {
           <Text style={styles.label}>Duration:</Text>
           <Text style={styles.value}>{formatDuration(session.duration)}</Text>
         </View>
+        {session.helperTotalPausedDuration > 0 && (
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Helper Time:</Text>
+            <Text style={styles.value}>{formatDuration(session.helperTotalPausedDuration)}</Text>
+          </View>
+        )}
         <View style={styles.infoRow}>
           <Text style={styles.label}>Time:</Text>
           <Text style={styles.value}>
