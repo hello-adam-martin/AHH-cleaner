@@ -17,11 +17,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: (cleaner, pin) => {
     // Verify PIN matches
     if (cleaner.pin !== pin) {
-      console.log('❌ Invalid PIN');
       return false;
     }
-
-    console.log(`✓ ${cleaner.name} logged in successfully`);
 
     // Store authenticated cleaner
     storageHelpers.setObject('authenticated_cleaner', cleaner);
@@ -35,8 +32,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: () => {
-    console.log('Logging out...');
-
     // Clear storage
     storageHelpers.setObject('authenticated_cleaner', null);
 
@@ -50,7 +45,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const storedCleaner = storageHelpers.getObject<Cleaner>('authenticated_cleaner');
 
     if (storedCleaner) {
-      console.log(`Restored session for ${storedCleaner.name}`);
       set({
         authenticatedCleaner: storedCleaner,
         isAuthenticated: true,

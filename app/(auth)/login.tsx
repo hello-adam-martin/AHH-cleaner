@@ -19,7 +19,6 @@ export default function LoginScreen() {
   // Reset state when screen comes into focus (after logout)
   useFocusEffect(
     useCallback(() => {
-      console.log('Login screen focused - resetting state');
       setSelectedCleaner(null);
       setPin('');
       setError('');
@@ -27,21 +26,18 @@ export default function LoginScreen() {
   );
 
   const handleCleanerSelect = (cleaner: Cleaner) => {
-    console.log('Cleaner selected:', cleaner.name);
     setSelectedCleaner(cleaner);
     setPin('');
     setError('');
   };
 
   const handlePinPress = (digit: string) => {
-    console.log('PIN press:', digit, 'current PIN length:', pin.length);
     if (pin.length < 4) {
       const newPin = pin + digit;
       setPin(newPin);
 
       // Auto-submit when 4 digits entered
       if (newPin.length === 4) {
-        console.log('Auto-submitting PIN');
         handleSubmit(newPin);
       }
     }
@@ -53,24 +49,19 @@ export default function LoginScreen() {
   };
 
   const handleSubmit = (pinToSubmit: string = pin) => {
-    console.log('Submitting PIN for:', selectedCleaner?.name);
     if (!selectedCleaner || pinToSubmit.length !== 4) return;
 
     const success = login(selectedCleaner, pinToSubmit);
 
     if (success) {
-      // Navigate to main app
-      console.log('Login successful');
       router.replace('/(main)/properties');
     } else {
-      console.log('Login failed');
       setError('Incorrect PIN');
       setPin('');
     }
   };
 
   const handleBack = () => {
-    console.log('Back button pressed - clearing selection');
     setSelectedCleaner(null);
     setPin('');
     setError('');

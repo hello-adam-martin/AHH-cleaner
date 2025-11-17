@@ -23,7 +23,6 @@ export default function PropertiesScreen() {
   const activeSessions = useSessionStore((state) => state.activeSessions);
 
   const handleSwitchCleaner = () => {
-    console.log('Switch cleaner clicked - logging out');
     logout();
     router.replace('/(auth)/login');
   };

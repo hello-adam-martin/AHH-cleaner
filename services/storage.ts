@@ -107,7 +107,6 @@ if (Platform.OS === 'web') {
 export { storage };
 
 export const storageKeys = {
-  SELECTED_CLEANER: 'selected_cleaner',
   CLEANERS: 'cleaners',
   PROPERTIES: 'properties',
   ACTIVE_SESSIONS: 'active_sessions',

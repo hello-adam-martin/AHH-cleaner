@@ -80,7 +80,6 @@ export default function HistoryScreen() {
       : true; // On native, just logout directly (or implement native alert if needed)
 
     if (confirmed) {
-      console.log('Logging out...');
       logout();
       router.replace('/(auth)/login');
     }
