@@ -185,7 +185,7 @@ export default function ActiveCleaningScreen() {
                 </View>
               )}
             </View>
-            <Text style={styles.stickyTimer}>{formatCompactTime(elapsedTime)}</Text>
+            <Text style={styles.stickyTimer}>{formatCompactTime(elapsedTime + helperElapsedTime)}</Text>
           </View>
         </Animated.View>
       )}
@@ -240,15 +240,19 @@ export default function ActiveCleaningScreen() {
               <Text style={styles.pausedBannerText}>⏸ PAUSED</Text>
             </View>
           )}
+          <View style={styles.totalTimeSection}>
+            <Text style={styles.totalTimeLabel}>Total Time</Text>
+            <Text style={styles.totalTimeValue}>{formatCompactTime(elapsedTime + helperElapsedTime)}</Text>
+          </View>
           <View style={styles.timersRow}>
             <View style={styles.timerColumn}>
               <Text style={styles.timerLabel}>Cleaner Time</Text>
-              <TimerDisplay elapsedTime={elapsedTime} size="medium" />
+              <TimerDisplay elapsedTime={elapsedTime} size="small" />
             </View>
             <View style={styles.timerDivider} />
             <View style={styles.timerColumn}>
               <Text style={styles.timerLabel}>Helper Time</Text>
-              <TimerDisplay elapsedTime={helperElapsedTime} size="medium" />
+              <TimerDisplay elapsedTime={helperElapsedTime} size="small" />
             </View>
           </View>
         </View>
@@ -429,6 +433,27 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  totalTimeSection: {
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  totalTimeLabel: {
+    fontSize: 14,
+    fontFamily: 'Nunito_700Bold',
+    color: '#666',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  totalTimeValue: {
+    fontSize: 32,
+    fontFamily: 'Nunito_700Bold',
+    color: theme.colors.text,
+    fontVariant: ['tabular-nums'],
   },
   pausedBanner: {
     backgroundColor: '#FF9800',

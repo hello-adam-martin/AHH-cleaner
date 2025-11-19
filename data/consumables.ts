@@ -31,35 +31,28 @@ export const consumableItems: ConsumableItem[] = [
     category: 'linen',
     name: 'King Sheets',
     order: 1,
-    price: 5.00, // TODO: Update with actual price
+    price: 3.00,
   },
   {
     id: 'queen_sheets',
     category: 'linen',
     name: 'Queen Sheets',
     order: 2,
-    price: 4.50, // TODO: Update with actual price
+    price: 2.50,
   },
   {
     id: 'single_sheets',
     category: 'linen',
     name: 'Single Sheets',
     order: 3,
-    price: 3.50, // TODO: Update with actual price
+    price: 2.50,
   },
   {
     id: 'pillowcases',
     category: 'linen',
     name: 'Pillowcases',
     order: 4,
-    price: 1.00, // TODO: Update with actual price
-  },
-  {
-    id: 'duvet_covers',
-    category: 'linen',
-    name: 'Duvet Covers',
-    order: 5,
-    price: 4.00, // TODO: Update with actual price
+    price: 1.20,
   },
   // Towels
   {
@@ -67,28 +60,28 @@ export const consumableItems: ConsumableItem[] = [
     category: 'towels',
     name: 'Bath Towels',
     order: 1,
-    price: 2.50, // TODO: Update with actual price
+    price: 1.65,
   },
   {
     id: 'hand_towels',
     category: 'towels',
     name: 'Hand Towels',
     order: 2,
-    price: 1.50, // TODO: Update with actual price
+    price: 1.04,
   },
   {
     id: 'face_cloths',
     category: 'towels',
     name: 'Face Cloths',
     order: 3,
-    price: 0.75, // TODO: Update with actual price
+    price: 0.70,
   },
   {
     id: 'bath_mats',
     category: 'towels',
     name: 'Bath Mats',
     order: 4,
-    price: 2.00, // TODO: Update with actual price
+    price: 1.13,
   },
   // Toiletries
   {
@@ -128,10 +121,17 @@ export const consumableItems: ConsumableItem[] = [
   },
   // Kitchen Supplies
   {
-    id: 'coffee',
+    id: 'instant_coffee',
     category: 'kitchen',
-    name: 'Coffee',
+    name: 'Instant Coffee (1 Bag)',
     order: 1,
+    price: 2.00, // TODO: Update with actual price
+  },
+  {
+    id: 'coffee_pods',
+    category: 'kitchen',
+    name: 'Coffee Pods (1 Box)',
+    order: 2,
     price: 2.00, // TODO: Update with actual price
   },
   {
@@ -153,7 +153,7 @@ export const consumableItems: ConsumableItem[] = [
     category: 'kitchen',
     name: 'Milk',
     order: 4,
-    price: 2.50, // TODO: Update with actual price
+    price: 1.79,
   },
   {
     id: 'dishwashing_liquid',

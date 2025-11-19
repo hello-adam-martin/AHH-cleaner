@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
@@ -8,8 +7,6 @@ import { formatDuration, formatTime } from '@/utils/time';
 import { theme } from '@/constants/theme';
 import { consumableItems } from '@/data/consumables';
 import type { CompletedSession } from '@/types';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 
 function SessionCard({ session }: { session: CompletedSession }) {
   // Get all consumables that have been used
@@ -62,9 +59,8 @@ function SessionCard({ session }: { session: CompletedSession }) {
 }
 
 export default function HistoryScreen() {
-  const [exporting, setExporting] = useState(false);
   const { authenticatedCleaner, logout } = useAuthStore();
-  const { getTodaysSessions, getSessionsByCleaner } = useHistoryStore();
+  const { getTodaysSessions } = useHistoryStore();
 
   const todaysSessions = getTodaysSessions();
 
@@ -91,62 +87,6 @@ export default function HistoryScreen() {
     }
   };
 
-  const handleExport = async () => {
-    if (todaysSessions.length === 0) {
-      if (Platform.OS === 'web') {
-        window.alert('No Data: No completed sessions to export today.');
-      }
-      return;
-    }
-
-    setExporting(true);
-    try {
-      // Create filename with today's date
-      const today = new Date();
-      const dateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
-      const filename = `sessions-${dateStr}.json`;
-
-      // Convert sessions to JSON
-      const jsonData = JSON.stringify(todaysSessions, null, 2);
-
-      if (Platform.OS === 'web') {
-        // Web: Download file
-        const blob = new Blob([jsonData], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        window.alert(`Success: Exported ${todaysSessions.length} sessions`);
-      } else {
-        // Native: Share file
-        const fileUri = `${FileSystem.documentDirectory}${filename}`;
-        await FileSystem.writeAsStringAsync(fileUri, jsonData);
-
-        const canShare = await Sharing.isAvailableAsync();
-        if (canShare) {
-          await Sharing.shareAsync(fileUri, {
-            mimeType: 'application/json',
-            dialogTitle: 'Export Today\'s Sessions',
-          });
-        } else {
-          // Native alert would go here
-          console.log(`Sessions saved to ${fileUri}`);
-        }
-      }
-    } catch (error) {
-      console.error('Export error:', error);
-      if (Platform.OS === 'web') {
-        window.alert('Error: Failed to export sessions');
-      }
-    } finally {
-      setExporting(false);
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -159,25 +99,12 @@ export default function HistoryScreen() {
             </View>
           )}
         </View>
-        <View style={styles.headerButtons}>
-          {todaysSessions.length > 0 && (
-            <TouchableOpacity
-              style={styles.exportButton}
-              onPress={handleExport}
-              disabled={exporting}
-            >
-              <Text style={styles.exportButtonText}>
-                {exporting ? 'Exporting...' : 'Export'}
-              </Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={handleLogout}
-          >
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+        >
+          <Text style={styles.logoutButtonText}>Logout</Text>
+        </TouchableOpacity>
       </View>
 
       {displaySessions.length > 0 && (
@@ -226,22 +153,6 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     flex: 1,
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-  },
-  exportButton: {
-    backgroundColor: '#2196F3',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  exportButtonText: {
-    fontSize: 14,
-    fontFamily: 'Nunito_600SemiBold',
-    color: '#FFFFFF',
   },
   logoutButton: {
     backgroundColor: '#F44336',

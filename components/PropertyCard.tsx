@@ -50,9 +50,11 @@ export function PropertyCard({ property }: PropertyCardProps) {
           <Text style={styles.propertyName}>{property.name}</Text>
           <Text style={styles.address}>{property.address}</Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor() }]}>
-          <Text style={styles.statusText}>{getStatusText()}</Text>
-        </View>
+        {property.status !== PropertyStatus.PENDING && (
+          <View style={[styles.statusBadge, { backgroundColor: getStatusColor() }]}>
+            <Text style={styles.statusText}>{getStatusText()}</Text>
+          </View>
+        )}
       </View>
 
       {property.nextCheckinDate && (
