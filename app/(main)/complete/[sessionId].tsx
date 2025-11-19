@@ -8,7 +8,6 @@ import { useHistoryStore } from '@/stores/historyStore';
 import { TimerDisplay } from '@/components/TimerDisplay';
 import { useTimer } from '@/hooks/useTimer';
 import { useHelperTimer } from '@/hooks/useHelperTimer';
-import { formatTime } from '@/utils/time';
 import { theme } from '@/constants/theme';
 import { getCategoriesWithItems } from '@/data/consumables';
 import * as Haptics from 'expo-haptics';
@@ -21,6 +20,8 @@ export default function CompleteCleaningScreen() {
   const activeSessions = useSessionStore((state) => state.activeSessions);
   const completeSession = useSessionStore((state) => state.completeSession);
   const resumeSession = useSessionStore((state) => state.resumeSession);
+  const adjustCleanerTime = useSessionStore((state) => state.adjustCleanerTime);
+  const adjustHelperTime = useSessionStore((state) => state.adjustHelperTime);
   const addCompletedSession = useHistoryStore((state) => state.addCompletedSession);
 
   const session = activeSessions.find((s) => s.id === sessionId);
@@ -29,11 +30,9 @@ export default function CompleteCleaningScreen() {
   const helperElapsedTime = useHelperTimer(session);
 
   const [notes, setNotes] = useState('');
-  const [isAdjustingTime, setIsAdjustingTime] = useState(false);
-  const [startTimeInput, setStartTimeInput] = useState('');
-  const [endTimeInput, setEndTimeInput] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+  const [adjustingTimer, setAdjustingTimer] = useState<'cleaner' | 'helper' | null>(null);
 
   const categoriesWithItems = getCategoriesWithItems();
 
@@ -41,16 +40,15 @@ export default function CompleteCleaningScreen() {
     return null;
   }
 
-  const handleAdjustTime = () => {
-    setStartTimeInput(formatTime(session.startTime));
-    setEndTimeInput(formatTime(Date.now()));
-    setIsAdjustingTime(true);
+  // Handler functions for time adjustment
+  const handleAdjustCleanerTime = (minutes: number) => {
+    if (!session) return;
+    adjustCleanerTime(session.id, minutes);
   };
 
-  const handleSaveTimeAdjustment = () => {
-    // For simplicity, we'll just close the adjustment mode
-    // In a real app, you'd parse the time inputs and update the session
-    setIsAdjustingTime(false);
+  const handleAdjustHelperTime = (minutes: number) => {
+    if (!session) return;
+    adjustHelperTime(session.id, minutes);
   };
 
   const handleBack = () => {
@@ -120,52 +118,94 @@ export default function CompleteCleaningScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Total Time</Text>
           <TimerDisplay elapsedTime={elapsedTime + helperElapsedTime} size="large" />
-          {helperElapsedTime > 0 && (
-            <View style={styles.timeBreakdown}>
-              <View style={styles.breakdownRow}>
-                <Text style={styles.breakdownLabel}>Cleaner:</Text>
-                <TimerDisplay elapsedTime={elapsedTime} size="medium" />
-              </View>
-              <View style={styles.breakdownRow}>
-                <Text style={styles.breakdownLabel}>Helper:</Text>
-                <TimerDisplay elapsedTime={helperElapsedTime} size="medium" />
-              </View>
-            </View>
-          )}
 
-          {!isAdjustingTime ? (
-            <TouchableOpacity
-              style={styles.adjustButton}
-              onPress={handleAdjustTime}
-            >
-              <Text style={styles.adjustButtonText}>Adjust Time</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.timeAdjustment}>
-              <View style={styles.timeInputRow}>
-                <Text style={styles.timeInputLabel}>Start:</Text>
-                <TextInput
-                  style={styles.timeInput}
-                  value={startTimeInput}
-                  onChangeText={setStartTimeInput}
-                  placeholder="9:00 AM"
-                />
-              </View>
-              <View style={styles.timeInputRow}>
-                <Text style={styles.timeInputLabel}>End:</Text>
-                <TextInput
-                  style={styles.timeInput}
-                  value={endTimeInput}
-                  onChangeText={setEndTimeInput}
-                  placeholder="10:30 AM"
-                />
-              </View>
+          {/* Cleaner Time with Adjustment */}
+          <View style={styles.timeAdjustmentCard}>
+            <Text style={styles.timeLabel}>Cleaner Time</Text>
+            <TimerDisplay elapsedTime={elapsedTime} size="medium" />
+
+            {adjustingTimer !== 'cleaner' ? (
               <TouchableOpacity
-                style={styles.saveTimeButton}
-                onPress={handleSaveTimeAdjustment}
+                style={styles.adjustButton}
+                onPress={() => setAdjustingTimer('cleaner')}
               >
-                <Text style={styles.saveTimeButtonText}>Save</Text>
+                <Text style={styles.adjustButtonText}>Adjust Time</Text>
               </TouchableOpacity>
+            ) : (
+              <>
+                <View style={styles.adjustmentButtons}>
+                  <TouchableOpacity style={styles.adjustBtn} onPress={() => handleAdjustCleanerTime(-15)}>
+                    <Text style={styles.adjustBtnText}>-15m</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.adjustBtn} onPress={() => handleAdjustCleanerTime(-5)}>
+                    <Text style={styles.adjustBtnText}>-5m</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.adjustBtn} onPress={() => handleAdjustCleanerTime(-1)}>
+                    <Text style={styles.adjustBtnText}>-1m</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.adjustBtn, styles.adjustBtnPrimary]} onPress={() => handleAdjustCleanerTime(1)}>
+                    <Text style={[styles.adjustBtnText, styles.adjustBtnTextPrimary]}>+1m</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.adjustBtn, styles.adjustBtnPrimary]} onPress={() => handleAdjustCleanerTime(5)}>
+                    <Text style={[styles.adjustBtnText, styles.adjustBtnTextPrimary]}>+5m</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.adjustBtn, styles.adjustBtnPrimary]} onPress={() => handleAdjustCleanerTime(15)}>
+                    <Text style={[styles.adjustBtnText, styles.adjustBtnTextPrimary]}>+15m</Text>
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity
+                  style={styles.doneButton}
+                  onPress={() => setAdjustingTimer(null)}
+                >
+                  <Text style={styles.doneButtonText}>Done</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+
+          {/* Helper Time with Adjustment (if helper was used) */}
+          {helperElapsedTime > 0 && (
+            <View style={styles.timeAdjustmentCard}>
+              <Text style={styles.timeLabel}>Helper Time</Text>
+              <TimerDisplay elapsedTime={helperElapsedTime} size="medium" />
+
+              {adjustingTimer !== 'helper' ? (
+                <TouchableOpacity
+                  style={styles.adjustButton}
+                  onPress={() => setAdjustingTimer('helper')}
+                >
+                  <Text style={styles.adjustButtonText}>Adjust Time</Text>
+                </TouchableOpacity>
+              ) : (
+                <>
+                  <View style={styles.adjustmentButtons}>
+                    <TouchableOpacity style={styles.adjustBtn} onPress={() => handleAdjustHelperTime(-15)}>
+                      <Text style={styles.adjustBtnText}>-15m</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.adjustBtn} onPress={() => handleAdjustHelperTime(-5)}>
+                      <Text style={styles.adjustBtnText}>-5m</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.adjustBtn} onPress={() => handleAdjustHelperTime(-1)}>
+                      <Text style={styles.adjustBtnText}>-1m</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.adjustBtn, styles.adjustBtnPrimary]} onPress={() => handleAdjustHelperTime(1)}>
+                      <Text style={[styles.adjustBtnText, styles.adjustBtnTextPrimary]}>+1m</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.adjustBtn, styles.adjustBtnPrimary]} onPress={() => handleAdjustHelperTime(5)}>
+                      <Text style={[styles.adjustBtnText, styles.adjustBtnTextPrimary]}>+5m</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.adjustBtn, styles.adjustBtnPrimary]} onPress={() => handleAdjustHelperTime(15)}>
+                      <Text style={[styles.adjustBtnText, styles.adjustBtnTextPrimary]}>+15m</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.doneButton}
+                    onPress={() => setAdjustingTimer(null)}
+                  >
+                    <Text style={styles.doneButtonText}>Done</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           )}
         </View>
@@ -303,73 +343,75 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginBottom: 16,
   },
-  timeBreakdown: {
+  timeAdjustmentCard: {
     marginTop: 20,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 20,
-    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  breakdownRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  breakdownLabel: {
-    fontSize: 16,
+  timeLabel: {
+    fontSize: 14,
     fontFamily: 'Nunito_700Bold',
     color: '#666',
+    marginBottom: 12,
+    textAlign: 'center',
   },
   adjustButton: {
-    marginTop: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     backgroundColor: '#F5F5F5',
     borderRadius: 8,
     alignSelf: 'center',
   },
   adjustButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: 'Nunito_600SemiBold',
     color: theme.colors.text,
   },
-  timeAdjustment: {
-    marginTop: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    gap: 12,
-  },
-  timeInputRow: {
+  adjustmentButtons: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginTop: 16,
   },
-  timeInputLabel: {
-    fontSize: 14,
-    fontFamily: 'Nunito_600SemiBold',
-    color: '#666',
-    width: 50,
-  },
-  timeInput: {
-    flex: 1,
-    fontSize: 16,
-    fontFamily: 'Nunito_400Regular',
-    color: theme.colors.text,
-    backgroundColor: '#F5F5F5',
-    padding: 12,
+  doneButton: {
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: theme.colors.primary,
     borderRadius: 8,
+    alignSelf: 'center',
   },
-  saveTimeButton: {
-    backgroundColor: '#2196F3',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  saveTimeButtonText: {
-    fontSize: 14,
+  doneButtonText: {
+    fontSize: 13,
     fontFamily: 'Nunito_600SemiBold',
     color: '#FFFFFF',
+  },
+  adjustBtn: {
+    backgroundColor: '#F5F5F5',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  adjustBtnPrimary: {
+    backgroundColor: '#E3F2FD',
+  },
+  adjustBtnText: {
+    fontSize: 14,
+    fontFamily: 'Nunito_700Bold',
+    color: '#666',
+  },
+  adjustBtnTextPrimary: {
+    color: '#2196F3',
   },
   categorySection: {
     marginBottom: 16,

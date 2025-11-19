@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { useCleanerStore } from '@/stores/cleanerStore';
@@ -17,6 +17,7 @@ export default function LoginScreen() {
   const [selectedCleaner, setSelectedCleaner] = useState<Cleaner | null>(null);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Reset state when screen comes into focus (after logout)
   useFocusEffect(
@@ -24,6 +25,7 @@ export default function LoginScreen() {
       setSelectedCleaner(null);
       setPin('');
       setError('');
+      setIsLoading(false);
     }, [])
   );
 
@@ -34,6 +36,8 @@ export default function LoginScreen() {
   };
 
   const handlePinPress = (digit: string) => {
+    if (isLoading) return; // Prevent input during loading
+
     if (pin.length < 4) {
       const newPin = pin + digit;
       setPin(newPin);
@@ -46,18 +50,22 @@ export default function LoginScreen() {
   };
 
   const handleBackspace = () => {
+    if (isLoading) return; // Prevent input during loading
+
     setPin(pin.slice(0, -1));
     setError('');
   };
 
   const handleSubmit = async (pinToSubmit: string = pin) => {
-    if (!selectedCleaner || pinToSubmit.length !== 4) return;
+    if (!selectedCleaner || pinToSubmit.length !== 4 || isLoading) return;
 
     const success = login(selectedCleaner, pinToSubmit);
 
     if (success) {
+      setIsLoading(true);
       // Refresh properties data from Airtable on successful login
       await refreshFromAirtable();
+      setIsLoading(false);
       router.replace('/(main)/properties');
     } else {
       setError('Incorrect PIN');
@@ -77,8 +85,7 @@ export default function LoginScreen() {
         <Text style={styles.title}>Akaroa Holiday Homes</Text>
         <Text style={styles.subtitle}>Cleaner App</Text>
 
-        {!selectedCleaner ? (
-          // Name Selection Screen
+        {!selectedCleaner && (
           <View style={styles.selectionContainer}>
             <Text style={styles.prompt}>Who are you?</Text>
             <View style={styles.cleanersList}>
@@ -95,8 +102,9 @@ export default function LoginScreen() {
               ))}
             </View>
           </View>
-        ) : (
-          // PIN Entry Screen
+        )}
+
+        {selectedCleaner && (
           <View style={styles.pinContainer}>
             <TouchableOpacity onPress={handleBack} style={styles.backLink}>
               <Text style={styles.backLinkText}>← Back</Text>
@@ -121,17 +129,29 @@ export default function LoginScreen() {
               ))}
             </View>
 
-            {error ? (
-              <Text style={styles.errorText}>{error}</Text>
-            ) : null}
+            {isLoading && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+                <Text style={styles.loadingText}>Loading Schedule</Text>
+              </View>
+            )}
 
-            <View style={styles.keypad}>
+            {!isLoading && error && (
+              <Text style={styles.errorText}>{error}</Text>
+            )}
+
+            {!isLoading && !error && (
+              <View style={styles.spacer} />
+            )}
+
+            <View style={[styles.keypad, isLoading && styles.keypadHidden]}>
               {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
                 <TouchableOpacity
                   key={num}
                   style={styles.keypadButton}
                   onPress={() => handlePinPress(String(num))}
                   activeOpacity={0.7}
+                  disabled={isLoading}
                 >
                   <Text style={styles.keypadButtonText}>{num}</Text>
                 </TouchableOpacity>
@@ -141,6 +161,7 @@ export default function LoginScreen() {
                 style={styles.keypadButton}
                 onPress={() => handlePinPress('0')}
                 activeOpacity={0.7}
+                disabled={isLoading}
               >
                 <Text style={styles.keypadButtonText}>0</Text>
               </TouchableOpacity>
@@ -148,6 +169,7 @@ export default function LoginScreen() {
                 style={styles.keypadButton}
                 onPress={handleBackspace}
                 activeOpacity={0.7}
+                disabled={isLoading}
               >
                 <Text style={styles.keypadButtonText}>⌫</Text>
               </TouchableOpacity>
@@ -261,10 +283,27 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
   },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+    height: 40,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontFamily: 'Nunito_600SemiBold',
+    color: theme.colors.primary,
+  },
   errorText: {
     fontSize: 14,
     fontFamily: 'Nunito_600SemiBold',
     color: '#F44336',
+    marginBottom: 20,
+    height: 40,
+  },
+  spacer: {
+    height: 40,
     marginBottom: 20,
   },
   keypad: {
@@ -272,6 +311,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     width: 240,
     gap: 12,
+  },
+  keypadHidden: {
+    opacity: 0,
   },
   keypadButton: {
     width: 72,

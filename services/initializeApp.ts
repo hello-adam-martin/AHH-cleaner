@@ -5,7 +5,6 @@ import { useHistoryStore } from '@/stores/historyStore';
 import { useAuthStore } from '@/stores/authStore';
 import { fetchTodaysCheckouts, fetchCleaners, isAirtableConfigured } from './airtableService';
 import { storageHelpers, storageKeys } from './storage';
-import { seedCleaners } from '@/data/seedData';
 
 /**
  * Check if we need to fetch new data from Airtable
@@ -41,17 +40,15 @@ export const initializeApp = async () => {
       setCleaners(airtableCleaners);
       console.log(`✓ Loaded ${airtableCleaners.length} cleaners from Airtable`);
     } else if (cleaners.length === 0) {
-      // Fetch failed and no cached cleaners - use seed data as fallback
-      console.log('Using seed cleaners (Airtable fetch failed)');
-      setCleaners(seedCleaners);
+      // Fetch failed and no cached cleaners
+      console.log('⚠ No cleaners available (Airtable fetch failed and no cached data)');
     } else {
       // Fetch failed but we have cached cleaners
       console.log(`Using ${cleaners.length} cached cleaners (Airtable fetch failed)`);
     }
   } else if (cleaners.length === 0) {
-    // Airtable not configured and no cached cleaners - use seed data
-    console.log('Using seed cleaners (Airtable not configured)');
-    setCleaners(seedCleaners);
+    // Airtable not configured and no cached cleaners
+    console.log('⚠ No cleaners available (Airtable not configured and no cached data)');
   } else {
     // Airtable not configured but we have cached cleaners
     console.log(`Using ${cleaners.length} cached cleaners`);

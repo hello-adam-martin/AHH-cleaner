@@ -13,6 +13,8 @@ interface SessionState {
   completeSession: (sessionId: string, endTime: number) => CleaningSession | null;
   startHelperTimer: (sessionId: string) => void;
   stopHelperTimer: (sessionId: string) => void;
+  adjustCleanerTime: (sessionId: string, minutes: number) => void;
+  adjustHelperTime: (sessionId: string, minutes: number) => void;
   getActiveSessionForProperty: (propertyId: string) => CleaningSession[];
   getActiveSessionForCleaner: (cleanerId: string) => CleaningSession | null;
   initializeFromStorage: () => void;
@@ -191,6 +193,62 @@ export const useSessionStore = create<SessionState>((set, get) => ({
             helperStartTime: undefined,
             // Store the total helper duration accumulated so far
             helperTotalPausedDuration: newTotalDuration,
+          };
+        }
+        return session;
+      });
+      storageHelpers.setObject(storageKeys.ACTIVE_SESSIONS, updated);
+      return { activeSessions: updated };
+    }),
+
+  adjustCleanerTime: (sessionId, minutes) =>
+    set((state) => {
+      const updated = state.activeSessions.map((session) => {
+        if (session.id === sessionId) {
+          // Adjust the start time to change the duration
+          // Adding minutes means moving start time earlier (subtract)
+          const adjustmentMs = minutes * 60 * 1000;
+          const newStartTime = session.startTime - adjustmentMs;
+
+          // Calculate what the new duration would be
+          const currentTime = Date.now();
+          const newDuration = currentTime - newStartTime - session.totalPausedDuration;
+
+          // Prevent negative durations
+          if (newDuration < 0) {
+            return session;
+          }
+
+          return {
+            ...session,
+            startTime: newStartTime,
+          };
+        }
+        return session;
+      });
+      storageHelpers.setObject(storageKeys.ACTIVE_SESSIONS, updated);
+      return { activeSessions: updated };
+    }),
+
+  adjustHelperTime: (sessionId, minutes) =>
+    set((state) => {
+      const updated = state.activeSessions.map((session) => {
+        if (session.id === sessionId) {
+          // Adjust the helper total duration
+          const adjustmentMs = minutes * 60 * 1000;
+          const newHelperDuration = session.helperTotalPausedDuration + adjustmentMs;
+
+          // Prevent negative durations
+          if (newHelperDuration < 0) {
+            return session;
+          }
+
+          return {
+            ...session,
+            helperTotalPausedDuration: newHelperDuration,
+            helperActive: false,
+            helperStartTime: undefined,
+            helperPausedAt: undefined,
           };
         }
         return session;
