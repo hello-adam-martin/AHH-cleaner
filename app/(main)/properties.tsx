@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, RefreshControl, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useCleanerStore } from '@/stores/cleanerStore';
@@ -23,11 +23,15 @@ export default function PropertiesScreen() {
   const setProperties = usePropertiesStore((state) => state.setProperties);
   const cleaners = useCleanerStore((state) => state.cleaners);
   const activeSessions = useSessionStore((state) => state.activeSessions);
-  const pendingSessions = useHistoryStore((state) => state.getPendingSessions());
+  const completedSessions = useHistoryStore((state) => state.completedSessions);
   const isSyncing = useHistoryStore((state) => state.isSyncing);
   const syncAllPending = useHistoryStore((state) => state.syncAllPending);
 
-  const pendingCount = pendingSessions.length;
+  // Calculate pending count from completed sessions (avoid calling getPendingSessions in selector)
+  const pendingCount = useMemo(
+    () => completedSessions.filter((s) => s.syncedToAirtable === false).length,
+    [completedSessions]
+  );
 
   const handleSwitchCleaner = () => {
     logout();
