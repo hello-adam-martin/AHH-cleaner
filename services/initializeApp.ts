@@ -74,4 +74,23 @@ export const initializeApp = async () => {
     // Using cached properties from previous session
     console.log(`Using ${properties.length} cached properties`);
   }
+
+  // Retry syncing any pending sessions (completed but not yet synced)
+  if (isAirtableConfigured()) {
+    const { getPendingSessions, syncAllPending } = useHistoryStore.getState();
+    const pendingSessions = getPendingSessions();
+
+    if (pendingSessions.length > 0) {
+      console.log(`Found ${pendingSessions.length} pending sessions to sync...`);
+      // Don't await - let it sync in background
+      syncAllPending().then((result) => {
+        if (result.synced > 0) {
+          console.log(`✓ Synced ${result.synced} pending sessions on startup`);
+        }
+        if (result.failed > 0) {
+          console.log(`⚠ ${result.failed} sessions failed to sync (will retry later)`);
+        }
+      });
+    }
+  }
 };

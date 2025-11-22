@@ -13,11 +13,20 @@ function SessionCard({ session }: { session: CompletedSession }) {
   const usedConsumables = consumableItems.filter(
     (item) => (session.consumables[item.id] || 0) > 0
   );
+  const isUnsynced = session.syncedToAirtable === false;
+
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, isUnsynced && styles.cardUnsynced]}>
       <View style={styles.cardHeader}>
         <View style={styles.cardHeaderLeft}>
-          <Text style={styles.propertyName}>{session.property.name}</Text>
+          <View style={styles.propertyNameRow}>
+            <Text style={styles.propertyName}>{session.property.name}</Text>
+            {isUnsynced && (
+              <View style={styles.unsyncedBadge}>
+                <Text style={styles.unsyncedBadgeText}>Not synced</Text>
+              </View>
+            )}
+          </View>
           <Text style={styles.propertyAddress}>{session.property.address}</Text>
         </View>
         <CleanerBadge cleaner={session.cleaner} size="medium" />
@@ -228,6 +237,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  cardUnsynced: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9800',
+  },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -238,11 +251,27 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
+  propertyNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
   propertyName: {
     fontSize: 16,
     fontFamily: 'Nunito_700Bold',
     color: theme.colors.text,
-    marginBottom: 4,
+  },
+  unsyncedBadge: {
+    backgroundColor: '#FF9800',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  unsyncedBadgeText: {
+    fontSize: 10,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#FFFFFF',
   },
   propertyAddress: {
     fontSize: 12,
