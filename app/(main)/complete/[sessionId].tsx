@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { usePropertiesStore } from '@/stores/propertiesStore';
@@ -262,9 +262,14 @@ export default function CompleteCleaningScreen() {
           onPress={handleComplete}
           disabled={isSyncing}
         >
-          <Text style={styles.buttonText}>
-            {isSyncing ? 'Saving...' : 'Complete Cleaning'}
-          </Text>
+          {isSyncing ? (
+            <View style={styles.buttonContent}>
+              <ActivityIndicator size="small" color="#FFFFFF" />
+              <Text style={styles.buttonText}>Saving...</Text>
+            </View>
+          ) : (
+            <Text style={styles.buttonText}>Complete Cleaning</Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -491,7 +496,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   completeButtonDisabled: {
-    backgroundColor: '#CCCCCC',
+    backgroundColor: '#999999',
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   buttonText: {
     fontSize: 18,
