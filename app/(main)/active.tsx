@@ -1,27 +1,33 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Animated, Modal, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { usePropertiesStore } from '@/stores/propertiesStore';
 import { useSessionStore } from '@/stores/sessionStore';
+import { useHistoryStore } from '@/stores/historyStore';
 import { TimerDisplay } from '@/components/TimerDisplay';
 import { ConsumableCounter } from '@/components/ConsumableCounter';
 import { CleanerBadge } from '@/components/CleanerBadge';
 import { useTimer } from '@/hooks/useTimer';
 import { useHelperTimer } from '@/hooks/useHelperTimer';
 import { theme } from '@/constants/theme';
-import { getCategoriesWithItems } from '@/data/consumables';
+import { getCategoriesWithItems, consumableItems } from '@/data/consumables';
 import * as Haptics from 'expo-haptics';
 
 export default function ActiveCleaningScreen() {
   const authenticatedCleaner = useAuthStore((state) => state.authenticatedCleaner);
   const properties = usePropertiesStore((state) => state.properties);
+  const refreshFromAirtable = usePropertiesStore((state) => state.refreshFromAirtable);
   const activeSessions = useSessionStore((state) => state.activeSessions);
   const stopSession = useSessionStore((state) => state.stopSession);
   const restartSession = useSessionStore((state) => state.restartSession);
   const updateConsumables = useSessionStore((state) => state.updateConsumables);
   const startHelperTimer = useSessionStore((state) => state.startHelperTimer);
   const stopHelperTimer = useSessionStore((state) => state.stopHelperTimer);
+  const completeSession = useSessionStore((state) => state.completeSession);
+  const adjustCleanerTime = useSessionStore((state) => state.adjustCleanerTime);
+  const adjustHelperTime = useSessionStore((state) => state.adjustHelperTime);
+  const addCompletedSession = useHistoryStore((state) => state.addCompletedSession);
 
   const cleanerSessions = authenticatedCleaner
     ? activeSessions.filter((s) => s.cleanerId === authenticatedCleaner.id)
@@ -46,6 +52,13 @@ export default function ActiveCleaningScreen() {
   // Track scroll position for sticky header
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const [headerOpacity] = useState(new Animated.Value(0));
+
+  // Completion modal state
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+
+  // Time adjustment state
+  const [adjustingTimer, setAdjustingTimer] = useState<'cleaner' | 'helper' | null>(null);
 
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories(prev => {
@@ -104,13 +117,57 @@ export default function ActiveCleaningScreen() {
   const handleComplete = async () => {
     if (session) {
       try {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       } catch (e) {
         // Haptics not available on web
       }
-
-      router.push(`/(main)/complete/${session.id}`);
+      setShowCompleteModal(true);
     }
+  };
+
+  const handleConfirmComplete = async () => {
+    if (!session || !property || !authenticatedCleaner || isCompleting) return;
+
+    setIsCompleting(true);
+
+    try {
+      // Complete the session (this stops the timer)
+      const completedSession = completeSession(session.id, Date.now());
+
+      if (completedSession) {
+        // Add to history (this will sync to Airtable)
+        await addCompletedSession(completedSession, property, authenticatedCleaner);
+
+        // Refresh properties from Airtable to get updated totals
+        await refreshFromAirtable();
+
+        // Haptic feedback
+        try {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch (e) {
+          // Haptics not available on web
+        }
+
+        setShowCompleteModal(false);
+        setIsCompleting(false);
+        router.push('/(main)/properties');
+      } else {
+        setIsCompleting(false);
+      }
+    } catch (error) {
+      console.error('Error completing session:', error);
+      setIsCompleting(false);
+    }
+  };
+
+  const handleAdjustCleanerTime = (minutes: number) => {
+    if (!session) return;
+    adjustCleanerTime(session.id, minutes);
+  };
+
+  const handleAdjustHelperTime = (minutes: number) => {
+    if (!session) return;
+    adjustHelperTime(session.id, minutes);
   };
 
   const handleStartHelper = async () => {
@@ -247,11 +304,51 @@ export default function ActiveCleaningScreen() {
             <View style={styles.timerColumn}>
               <Text style={styles.timerLabel}>Cleaner Time</Text>
               <TimerDisplay elapsedTime={elapsedTime} size="small" />
+              {adjustingTimer === 'cleaner' ? (
+                <View style={styles.adjustmentSection}>
+                  <View style={styles.adjustmentButtons}>
+                    <TouchableOpacity style={styles.adjustBtn} onPress={() => handleAdjustCleanerTime(-5)}>
+                      <Text style={styles.adjustBtnText}>-5m</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.adjustBtn, styles.adjustBtnPrimary]} onPress={() => handleAdjustCleanerTime(5)}>
+                      <Text style={[styles.adjustBtnText, styles.adjustBtnTextPrimary]}>+5m</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity style={styles.doneAdjustBtn} onPress={() => setAdjustingTimer(null)}>
+                    <Text style={styles.doneAdjustText}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.adjustLink} onPress={() => setAdjustingTimer('cleaner')}>
+                  <Text style={styles.adjustLinkText}>Adjust</Text>
+                </TouchableOpacity>
+              )}
             </View>
             <View style={styles.timerDivider} />
             <View style={styles.timerColumn}>
               <Text style={styles.timerLabel}>Helper Time</Text>
               <TimerDisplay elapsedTime={helperElapsedTime} size="small" />
+              {helperElapsedTime > 0 && (
+                adjustingTimer === 'helper' ? (
+                  <View style={styles.adjustmentSection}>
+                    <View style={styles.adjustmentButtons}>
+                      <TouchableOpacity style={styles.adjustBtn} onPress={() => handleAdjustHelperTime(-5)}>
+                        <Text style={styles.adjustBtnText}>-5m</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={[styles.adjustBtn, styles.adjustBtnPrimary]} onPress={() => handleAdjustHelperTime(5)}>
+                        <Text style={[styles.adjustBtnText, styles.adjustBtnTextPrimary]}>+5m</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <TouchableOpacity style={styles.doneAdjustBtn} onPress={() => setAdjustingTimer(null)}>
+                      <Text style={styles.doneAdjustText}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity style={styles.adjustLink} onPress={() => setAdjustingTimer('helper')}>
+                    <Text style={styles.adjustLinkText}>Adjust</Text>
+                  </TouchableOpacity>
+                )
+              )}
             </View>
           </View>
         </View>
@@ -349,6 +446,76 @@ export default function ActiveCleaningScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Completion Confirmation Modal */}
+      <Modal
+        visible={showCompleteModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => !isCompleting && setShowCompleteModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Complete Cleaning?</Text>
+            <Text style={styles.modalProperty}>{property.name}</Text>
+
+            <View style={styles.modalSummary}>
+              <View style={styles.modalTimeRow}>
+                <Text style={styles.modalLabel}>Total Time</Text>
+                <Text style={styles.modalValue}>{formatCompactTime(elapsedTime + helperElapsedTime)}</Text>
+              </View>
+              <View style={styles.modalTimeBreakdown}>
+                <Text style={styles.modalSmallText}>
+                  Cleaner: {formatCompactTime(elapsedTime)}
+                  {helperElapsedTime > 0 && ` + Helper: ${formatCompactTime(helperElapsedTime)}`}
+                </Text>
+              </View>
+
+              {/* Consumables summary */}
+              {(() => {
+                const usedConsumables = consumableItems.filter(
+                  (item) => (session.consumables[item.id] || 0) > 0
+                );
+                if (usedConsumables.length === 0) return null;
+                return (
+                  <View style={styles.modalConsumables}>
+                    <Text style={styles.modalConsumablesTitle}>Consumables</Text>
+                    {usedConsumables.map((item) => (
+                      <Text key={item.id} style={styles.modalConsumableItem}>
+                        {item.name}: {session.consumables[item.id]}
+                      </Text>
+                    ))}
+                  </View>
+                );
+              })()}
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setShowCompleteModal(false)}
+                disabled={isCompleting}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalConfirmBtn, isCompleting && styles.modalConfirmBtnDisabled]}
+                onPress={handleConfirmComplete}
+                disabled={isCompleting}
+              >
+                {isCompleting ? (
+                  <View style={styles.modalBtnContent}>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <Text style={styles.modalConfirmText}>Saving...</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.modalConfirmText}>Complete</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -716,5 +883,162 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
     zIndex: 1000,
+  },
+  // Time adjustment styles
+  adjustmentSection: {
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  adjustmentButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  adjustBtn: {
+    backgroundColor: '#F5F5F5',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  adjustBtnPrimary: {
+    backgroundColor: '#E3F2FD',
+  },
+  adjustBtnText: {
+    fontSize: 12,
+    fontFamily: 'Nunito_700Bold',
+    color: '#666',
+  },
+  adjustBtnTextPrimary: {
+    color: '#2196F3',
+  },
+  adjustLink: {
+    marginTop: 8,
+  },
+  adjustLinkText: {
+    fontSize: 12,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#2196F3',
+  },
+  doneAdjustBtn: {
+    marginTop: 6,
+  },
+  doneAdjustText: {
+    fontSize: 12,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#4CAF50',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 340,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: 'Nunito_700Bold',
+    color: theme.colors.text,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  modalProperty: {
+    fontSize: 16,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalSummary: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  modalTimeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  modalLabel: {
+    fontSize: 14,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#666',
+  },
+  modalValue: {
+    fontSize: 20,
+    fontFamily: 'Nunito_700Bold',
+    color: theme.colors.text,
+    fontVariant: ['tabular-nums'],
+  },
+  modalTimeBreakdown: {
+    marginBottom: 12,
+  },
+  modalSmallText: {
+    fontSize: 12,
+    fontFamily: 'Nunito_400Regular',
+    color: '#999',
+  },
+  modalConsumables: {
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+    paddingTop: 12,
+  },
+  modalConsumablesTitle: {
+    fontSize: 12,
+    fontFamily: 'Nunito_700Bold',
+    color: '#666',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  modalConsumableItem: {
+    fontSize: 13,
+    fontFamily: 'Nunito_400Regular',
+    color: '#666',
+    marginBottom: 4,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 10,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#666',
+  },
+  modalConfirmBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 10,
+    backgroundColor: '#4CAF50',
+    alignItems: 'center',
+  },
+  modalConfirmBtnDisabled: {
+    backgroundColor: '#999999',
+  },
+  modalConfirmText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_700Bold',
+    color: '#FFFFFF',
+  },
+  modalBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
 });
