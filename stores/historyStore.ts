@@ -39,7 +39,7 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
       endTime: session.endTime,
       property,
       cleaner,
-      duration: session.accumulatedDuration,
+      duration: session.accumulatedDuration + session.helperAccumulatedDuration,
     };
 
     // Try to sync to Airtable if configured
