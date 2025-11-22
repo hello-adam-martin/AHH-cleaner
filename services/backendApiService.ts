@@ -72,7 +72,7 @@ export async function updateBookingWithCleaningData(
     body: JSON.stringify({
       propertyId: session.propertyId,
       duration: session.duration,
-      helperTotalPausedDuration: session.helperTotalPausedDuration || 0,
+      helperAccumulatedDuration: session.helperAccumulatedDuration || 0,
       consumables: session.consumables,
     }),
   });
@@ -100,8 +100,9 @@ export async function testAirtableConnection(): Promise<boolean> {
 
 /**
  * Check if backend API is configured
- * Backend is considered configured if API_URL is set
+ * Backend is considered configured if EXPO_PUBLIC_API_URL env var is explicitly set
+ * (not just using the /api fallback which only works on web)
  */
 export function isAirtableConfigured(): boolean {
-  return Boolean(API_URL);
+  return Boolean(process.env.EXPO_PUBLIC_API_URL);
 }

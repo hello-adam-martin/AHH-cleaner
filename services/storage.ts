@@ -122,7 +122,13 @@ export const storageHelpers = {
 
   getObject: <T>(key: string): T | undefined => {
     const data = storage.getString(key);
-    return data ? JSON.parse(data) : undefined;
+    if (!data) return undefined;
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      console.error(`Failed to parse storage data for key "${key}":`, e);
+      return undefined;
+    }
   },
 
   setString: (key: string, value: string): void => {

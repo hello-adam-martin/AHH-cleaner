@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, Platform, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '@/stores/authStore';
 import { useHistoryStore } from '@/stores/historyStore';
@@ -37,10 +37,10 @@ function SessionCard({ session }: { session: CompletedSession }) {
           <Text style={styles.label}>Duration:</Text>
           <Text style={styles.value}>{formatDuration(session.duration)}</Text>
         </View>
-        {session.helperTotalPausedDuration > 0 && (
+        {session.helperAccumulatedDuration > 0 && (
           <View style={styles.infoRow}>
             <Text style={styles.label}>Helper Time:</Text>
-            <Text style={styles.value}>{formatDuration(session.helperTotalPausedDuration)}</Text>
+            <Text style={styles.value}>{formatDuration(session.helperAccumulatedDuration)}</Text>
           </View>
         )}
         <View style={styles.infoRow}>
@@ -86,13 +86,24 @@ export default function HistoryScreen() {
   const totalProperties = displaySessions.length;
 
   const handleLogout = () => {
-    const confirmed = Platform.OS === 'web'
-      ? window.confirm('Are you sure you want to logout?')
-      : true; // On native, just logout directly (or implement native alert if needed)
-
-    if (confirmed) {
+    const doLogout = () => {
       logout();
       router.replace('/(auth)/login');
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to logout?')) {
+        doLogout();
+      }
+    } else {
+      Alert.alert(
+        'Logout',
+        'Are you sure you want to logout?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Logout', style: 'destructive', onPress: doLogout },
+        ]
+      );
     }
   };
 
