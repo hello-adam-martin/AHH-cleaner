@@ -114,11 +114,22 @@ export default function PropertiesScreen() {
       status = PropertyStatus.IN_PROGRESS;
     }
 
+    // Determine sync status from completed sessions for this property
+    const propertyCompletedSessions = completedSessions.filter(
+      (s) => s.propertyId === property.id
+    );
+    let syncStatus: 'synced' | 'pending' | 'none' = 'none';
+    if (propertyCompletedSessions.length > 0) {
+      const hasUnsynced = propertyCompletedSessions.some((s) => s.syncedToAirtable === false);
+      syncStatus = hasUnsynced ? 'pending' : 'synced';
+    }
+
     return {
       ...property,
       status,
       activeCleaners,
       activeSessions: propertySessions,
+      syncStatus,
     };
   });
 
