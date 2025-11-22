@@ -46,17 +46,15 @@ export interface CleaningSession {
   id: string;
   propertyId: string;
   cleanerId: string;
-  startTime: number; // Unix timestamp
-  endTime?: number; // Unix timestamp
-  pausedAt?: number; // Unix timestamp when paused
-  totalPausedDuration: number; // Total time paused in milliseconds
+  startTime: number; // Unix timestamp when current timing segment started
+  endTime?: number; // Unix timestamp when completed
+  accumulatedDuration: number; // Time accumulated from previous stop/starts in milliseconds
   consumables: Consumables;
-  status: 'active' | 'paused' | 'completed';
+  status: 'active' | 'stopped' | 'completed';
   notes?: string;
   // Helper tracking
   helperStartTime?: number; // When helper timer was started
-  helperPausedAt?: number; // When helper timer was paused
-  helperTotalPausedDuration: number; // Total time helper was paused
+  helperAccumulatedDuration: number; // Time accumulated from previous stop/starts
   helperActive: boolean; // Whether helper timer is currently running
 }
 
@@ -70,7 +68,7 @@ export interface CompletedSession extends CleaningSession {
   endTime: number;
   property: Property;
   cleaner: Cleaner;
-  duration: number; // Total duration in milliseconds (excluding paused time)
+  duration: number; // Total duration in milliseconds (accumulated from all stop/starts)
   syncedToAirtable?: boolean; // Whether this session has been synced to Airtable
   syncError?: string; // Error message if sync failed
 }

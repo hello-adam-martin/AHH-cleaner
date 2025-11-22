@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { CompletedSession, CleaningSession, Property, Cleaner } from '@/types';
 import { storageHelpers, storageKeys } from '@/services/storage';
-import { updateBookingWithCleaningData, isAirtableConfigured } from '@/services/airtableService';
+import { updateBookingWithCleaningData, isAirtableConfigured } from '@/services/backendApiService';
 
 interface HistoryState {
   completedSessions: CompletedSession[];
@@ -28,7 +28,7 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
       endTime: session.endTime,
       property,
       cleaner,
-      duration: session.endTime - session.startTime - session.totalPausedDuration,
+      duration: session.accumulatedDuration,
     };
 
     // Try to sync to Airtable if configured

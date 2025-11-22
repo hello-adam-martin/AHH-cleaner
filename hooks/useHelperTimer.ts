@@ -13,10 +13,10 @@ export const useHelperTimer = (session: CleaningSession | null) => {
     if (session.helperActive && session.helperStartTime) {
       // Helper timer is currently running - add current session time to accumulated time
       const currentSessionTime = now - session.helperStartTime;
-      elapsed = currentSessionTime + session.helperTotalPausedDuration;
-    } else if (session.helperTotalPausedDuration > 0) {
+      elapsed = currentSessionTime + session.helperAccumulatedDuration;
+    } else if (session.helperAccumulatedDuration > 0) {
       // Helper timer has been stopped, show accumulated time
-      elapsed = session.helperTotalPausedDuration;
+      elapsed = session.helperAccumulatedDuration;
     }
 
     return Math.max(0, elapsed);

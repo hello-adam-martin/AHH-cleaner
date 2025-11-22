@@ -3,7 +3,7 @@ import { usePropertiesStore } from '@/stores/propertiesStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import { useAuthStore } from '@/stores/authStore';
-import { fetchTodaysCheckouts, fetchCleaners, isAirtableConfigured } from './airtableService';
+import { fetchTodaysCheckouts, fetchCleaners, isAirtableConfigured } from './backendApiService';
 import { storageHelpers, storageKeys } from './storage';
 
 /**

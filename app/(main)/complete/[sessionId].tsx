@@ -19,7 +19,6 @@ export default function CompleteCleaningScreen() {
   const refreshFromAirtable = usePropertiesStore((state) => state.refreshFromAirtable);
   const activeSessions = useSessionStore((state) => state.activeSessions);
   const completeSession = useSessionStore((state) => state.completeSession);
-  const resumeSession = useSessionStore((state) => state.resumeSession);
   const adjustCleanerTime = useSessionStore((state) => state.adjustCleanerTime);
   const adjustHelperTime = useSessionStore((state) => state.adjustHelperTime);
   const addCompletedSession = useHistoryStore((state) => state.addCompletedSession);
@@ -52,10 +51,6 @@ export default function CompleteCleaningScreen() {
   };
 
   const handleBack = () => {
-    if (session) {
-      // Resume the session when going back
-      resumeSession(session.id);
-    }
     router.push('/(main)/active');
   };
 

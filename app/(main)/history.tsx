@@ -91,7 +91,7 @@ export default function HistoryScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.title}>Today's History</Text>
+          <Text style={styles.title}>{"Today's History"}</Text>
           {authenticatedCleaner && (
             <View style={styles.cleanerInfo}>
               <CleanerBadge cleaner={authenticatedCleaner} size="small" />

@@ -17,8 +17,8 @@ export default function ActiveCleaningScreen() {
   const authenticatedCleaner = useAuthStore((state) => state.authenticatedCleaner);
   const properties = usePropertiesStore((state) => state.properties);
   const activeSessions = useSessionStore((state) => state.activeSessions);
-  const pauseSession = useSessionStore((state) => state.pauseSession);
-  const resumeSession = useSessionStore((state) => state.resumeSession);
+  const stopSession = useSessionStore((state) => state.stopSession);
+  const restartSession = useSessionStore((state) => state.restartSession);
   const updateConsumables = useSessionStore((state) => state.updateConsumables);
   const startHelperTimer = useSessionStore((state) => state.startHelperTimer);
   const stopHelperTimer = useSessionStore((state) => state.stopHelperTimer);
@@ -79,25 +79,25 @@ export default function ActiveCleaningScreen() {
     }
   };
 
-  const handlePause = async () => {
+  const handleStop = async () => {
     if (session) {
       try {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       } catch (e) {
         // Haptics not available on web
       }
-      pauseSession(session.id);
+      stopSession(session.id);
     }
   };
 
-  const handleResume = async () => {
+  const handleRestart = async () => {
     if (session) {
       try {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       } catch (e) {
         // Haptics not available on web
       }
-      resumeSession(session.id);
+      restartSession(session.id);
     }
   };
 
@@ -107,11 +107,6 @@ export default function ActiveCleaningScreen() {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch (e) {
         // Haptics not available on web
-      }
-
-      // Pause the cleaner timer (but don't stop helper - just navigate for review)
-      if (session.status !== 'paused') {
-        pauseSession(session.id);
       }
 
       router.push(`/(main)/complete/${session.id}`);
@@ -159,7 +154,8 @@ export default function ActiveCleaningScreen() {
     );
   }
 
-  const isPaused = session.status === 'paused';
+  const isStopped = session.status === 'stopped';
+  const isActive = session.status === 'active';
 
   const formatCompactTime = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
@@ -179,9 +175,9 @@ export default function ActiveCleaningScreen() {
               <Text style={styles.stickyPropertyName} numberOfLines={1}>
                 {property.name}
               </Text>
-              {isPaused && (
-                <View style={styles.stickyPausedBadge}>
-                  <Text style={styles.stickyPausedText}>PAUSED</Text>
+              {isStopped && (
+                <View style={styles.stickyStoppedBadge}>
+                  <Text style={styles.stickyStoppedText}>STOPPED</Text>
                 </View>
               )}
             </View>
@@ -198,16 +194,18 @@ export default function ActiveCleaningScreen() {
       >
         {cleanerSessions.length > 1 && (
           <View style={styles.sessionSelector}>
-            <Text style={styles.selectorLabel}>Active Properties ({cleanerSessions.length}):</Text>
+            <Text style={styles.selectorLabel}>Your Jobs ({cleanerSessions.length}):</Text>
             <View style={styles.sessionButtons}>
               {cleanerSessions.map((s) => {
                 const prop = properties.find((p) => p.id === s.propertyId);
+                const isSessionStopped = s.status === 'stopped';
                 return (
                   <TouchableOpacity
                     key={s.id}
                     style={[
                       styles.sessionButton,
-                      s.id === selectedSessionId && styles.sessionButtonActive
+                      s.id === selectedSessionId && styles.sessionButtonActive,
+                      isSessionStopped && styles.sessionButtonStopped
                     ]}
                     onPress={() => setSelectedSessionId(s.id)}
                   >
@@ -216,6 +214,7 @@ export default function ActiveCleaningScreen() {
                       s.id === selectedSessionId && styles.sessionButtonTextActive
                     ]}>
                       {prop?.name || 'Unknown'}
+                      {isSessionStopped ? ' (stopped)' : ''}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -235,9 +234,9 @@ export default function ActiveCleaningScreen() {
         </View>
 
         <View style={styles.timersCard}>
-          {isPaused && (
-            <View style={styles.pausedBanner}>
-              <Text style={styles.pausedBannerText}>⏸ PAUSED</Text>
+          {isStopped && (
+            <View style={styles.stoppedBanner}>
+              <Text style={styles.stoppedBannerText}>STOPPED</Text>
             </View>
           )}
           <View style={styles.totalTimeSection}>
@@ -313,32 +312,34 @@ export default function ActiveCleaningScreen() {
       <View style={styles.stickyFooter}>
         <View style={styles.controls}>
           <View style={styles.controlRow}>
-            {isPaused ? (
+            {isStopped ? (
               <TouchableOpacity
-                style={styles.resumeButton}
-                onPress={handleResume}
+                style={styles.restartButton}
+                onPress={handleRestart}
               >
-                <Text style={styles.buttonText}>Resume</Text>
+                <Text style={styles.buttonText}>Restart Timer</Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                style={styles.pauseButton}
-                onPress={handlePause}
+                style={styles.stopButton}
+                onPress={handleStop}
               >
-                <Text style={styles.buttonText}>Pause</Text>
+                <Text style={styles.buttonText}>Stop Timer</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity
-              style={[
-                styles.helperButton,
-                session.helperActive ? styles.helperButtonStop : styles.helperButtonStart
-              ]}
-              onPress={session.helperActive ? handleStopHelper : handleStartHelper}
-            >
-              <Text style={styles.buttonText}>
-                {session.helperActive ? 'Stop Helper' : 'Start Helper'}
-              </Text>
-            </TouchableOpacity>
+            {isActive && (
+              <TouchableOpacity
+                style={[
+                  styles.helperButton,
+                  session.helperActive ? styles.helperButtonStop : styles.helperButtonStart
+                ]}
+                onPress={session.helperActive ? handleStopHelper : handleStartHelper}
+              >
+                <Text style={styles.buttonText}>
+                  {session.helperActive ? 'Stop Helper' : 'Start Helper'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
           <TouchableOpacity
             style={styles.completeButton}
@@ -393,6 +394,9 @@ const styles = StyleSheet.create({
   sessionButtonActive: {
     backgroundColor: '#E3F2FD',
     borderColor: '#2196F3',
+  },
+  sessionButtonStopped: {
+    backgroundColor: '#FFF3E0',
   },
   sessionButtonText: {
     fontSize: 14,
@@ -455,7 +459,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontVariant: ['tabular-nums'],
   },
-  pausedBanner: {
+  stoppedBanner: {
     backgroundColor: '#FF9800',
     marginHorizontal: -20,
     marginTop: -20,
@@ -465,7 +469,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 12,
     alignItems: 'center',
   },
-  pausedBannerText: {
+  stoppedBannerText: {
     fontSize: 12,
     fontFamily: 'Nunito_700Bold',
     color: '#FFFFFF',
@@ -500,14 +504,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
-  pauseButton: {
+  stopButton: {
     flex: 1,
     backgroundColor: '#FF9800',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
-  resumeButton: {
+  restartButton: {
     flex: 1,
     backgroundColor: '#4CAF50',
     paddingVertical: 16,
@@ -677,13 +681,13 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     flexShrink: 1,
   },
-  stickyPausedBadge: {
+  stickyStoppedBadge: {
     backgroundColor: '#FF9800',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
   },
-  stickyPausedText: {
+  stickyStoppedText: {
     fontSize: 10,
     fontFamily: 'Nunito_700Bold',
     color: '#FFFFFF',

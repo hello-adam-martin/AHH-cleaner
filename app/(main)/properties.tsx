@@ -10,7 +10,7 @@ import { CleanerBadge } from '@/components/CleanerBadge';
 import type { PropertyWithStatus } from '@/types';
 import { PropertyStatus } from '@/types';
 import { theme } from '@/constants/theme';
-import { fetchTodaysCheckouts, isAirtableConfigured } from '@/services/airtableService';
+import { fetchTodaysCheckouts, isAirtableConfigured } from '@/services/backendApiService';
 import { storageHelpers, storageKeys } from '@/services/storage';
 
 export default function PropertiesScreen() {
@@ -89,7 +89,7 @@ export default function PropertiesScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.title}>Today's Properties</Text>
+          <Text style={styles.title}>{"Today's Properties"}</Text>
           {authenticatedCleaner && (
             <View style={styles.cleanerInfo}>
               <CleanerBadge cleaner={authenticatedCleaner} size="small" />
