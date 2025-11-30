@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Property } from '@/types';
 import { storageHelpers, storageKeys } from '@/services/storage';
-import { fetchTodaysCheckouts } from '@/services/airtableService';
+import { fetchTodaysCheckouts } from '@/services/backendApiService';
 
 interface PropertiesState {
   properties: Property[];

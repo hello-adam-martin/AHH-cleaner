@@ -1,63 +1,6 @@
 # Future Improvements
 
-This document tracks features and improvements that should be implemented before production deployment.
-
-## Critical - Security
-
-### Backend API for Airtable Calls
-
-**Priority:** HIGH - Required before web deployment
-
-**Issue:**
-Currently, the Airtable API key is exposed in the client-side code (`.env` file). When deployed to web, anyone can inspect the browser's network requests and extract the API key, giving them full access to your Airtable base.
-
-**Solution:**
-Move all Airtable API calls to a secure backend API. The client should call your backend, which then calls Airtable with the API key stored securely on the server.
-
-**Implementation Steps:**
-
-1. **Choose a backend solution:**
-   - Option A: Vercel/Netlify Serverless Functions (easiest)
-   - Option B: Express.js server on a VPS/hosting provider
-   - Option C: Firebase Cloud Functions
-   - Option D: AWS Lambda
-
-2. **Create API endpoints:**
-   ```
-   POST /api/cleaners/fetch
-   POST /api/properties/fetch
-   POST /api/bookings/update
-   POST /api/airtable/test-connection
-   ```
-
-3. **Update client code:**
-   - Create new service file: `services/backendApiService.ts`
-   - Replace direct Airtable calls in `services/airtableService.ts`
-   - Update environment variables to use backend URL instead of Airtable credentials
-   - Add error handling for API failures
-
-4. **Environment variables:**
-   ```
-   # Client (.env)
-   EXPO_PUBLIC_API_URL=https://your-backend.vercel.app/api
-
-   # Server (Vercel/backend environment)
-   AIRTABLE_API_KEY=patEIYMnCeiO85e1F...
-   AIRTABLE_BASE_ID=appznxoEK7MOUBhTP
-   ```
-
-5. **Security considerations:**
-   - Add rate limiting to prevent abuse
-   - Implement authentication/authorization for API endpoints
-   - Use CORS to restrict which domains can call your API
-   - Consider adding request signing or API keys for client authentication
-
-**Files to modify:**
-- `services/airtableService.ts` - Update to call backend API instead of Airtable directly
-- `.env` - Remove Airtable credentials, add backend API URL
-- Create: `api/` folder with serverless functions or backend server
-
----
+This document tracks features and improvements for the production deployment.
 
 ## Recommended Improvements
 
@@ -124,9 +67,18 @@ Add validation for:
 
 Before production:
 - Unit tests for stores (Zustand)
-- Integration tests for Airtable service
+- Integration tests for backend API service
 - E2E tests for critical flows (login, cleaning session)
 - Test error scenarios (network failures, invalid data)
+
+### 8. API Rate Limiting & Authentication
+
+**Priority:** LOW
+
+Add additional security to backend API:
+- Rate limiting to prevent abuse
+- API key authentication for client requests
+- Request signing for sensitive operations
 
 ---
 
@@ -139,8 +91,8 @@ Before production:
 
 ### Reporting
 - Weekly/monthly reports sent to admin
-- Export to PDF/Excel
-- Charts and analytics dashboard
+- Charts and analytics dashboard in Airtable or separate admin panel
+- Performance metrics (average cleaning time, consumables usage trends)
 
 ### Multi-language Support
 - Add i18n for different languages
@@ -151,21 +103,47 @@ Before production:
 - Store in Airtable attachments or cloud storage
 - Visual record of cleaning quality
 
+### Enhanced Time Tracking
+- Timer history with pause/resume events
+- Automatic break detection
+- GPS check-in/check-out for properties (verify cleaner is on-site)
+- Time comparison vs. estimated cleaning duration
+
 ---
 
 ## Notes
 
 **Current Status:**
-- ✅ PIN authentication implemented
-- ✅ Airtable integration working
-- ✅ Login/logout functionality complete
-- ❌ Backend API not implemented (CRITICAL for production)
-- ❌ Security improvements needed
+- PIN authentication implemented
+- Backend API implemented (Vercel Serverless Functions)
+- Airtable API key secured (server-side only)
+- Login/logout functionality complete
+- Multi-cleaner support (multiple cleaners can work on same property)
+- Helper timer tracking
+- Time adjustment with +/- buttons (1m, 5m, 15m increments)
+- Real-time property status updates
+- Consumables tracking and Airtable sync
+- History view with statistics
+- Deployed to Vercel (production)
+- Session persistence / auto-login not implemented
 
-**Before deploying to production web:**
-1. MUST implement backend API
-2. SHOULD add better error handling
-3. SHOULD add data validation
-4. SHOULD implement testing
+**Backend API Endpoints:**
+```
+GET  /api/cleaners    - Fetch all active cleaners
+GET  /api/properties  - Fetch today's properties (checkouts)
+POST /api/sessions    - Save completed session to Airtable
+GET  /api/health      - Test Airtable connection
+```
 
-**Last Updated:** 2025-11-17
+**Environment Variables:**
+- Server-side (Vercel): `AIRTABLE_API_KEY`, `AIRTABLE_BASE_ID`, etc.
+- Client-side: `EXPO_PUBLIC_API_URL` (optional, defaults to `/api`)
+
+**Production Deployment Checklist:**
+1. **RECOMMENDED:** Add better error handling and retry logic
+2. **RECOMMENDED:** Implement session persistence
+3. **OPTIONAL:** Add comprehensive testing
+4. **OPTIONAL:** Add data validation
+5. **OPTIONAL:** Add API rate limiting
+
+**Last Updated:** 2025-11-20

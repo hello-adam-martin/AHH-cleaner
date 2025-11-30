@@ -5,9 +5,9 @@ import { consumableItems } from '@/data/consumables';
 
 interface SessionState {
   activeSessions: CleaningSession[];
-  startSession: (propertyId: string, cleanerId: string) => CleaningSession;
-  pauseSession: (sessionId: string) => void;
-  resumeSession: (sessionId: string) => void;
+  startSession: (propertyId: string, cleanerId: string) => CleaningSession | null;
+  stopSession: (sessionId: string) => void;
+  restartSession: (sessionId: string) => void;
   updateSessionTime: (sessionId: string, startTime: number, endTime: number) => void;
   updateConsumables: (sessionId: string, consumables: Partial<Consumables>) => void;
   completeSession: (sessionId: string, endTime: number) => CleaningSession | null;
@@ -17,6 +17,7 @@ interface SessionState {
   adjustHelperTime: (sessionId: string, minutes: number) => void;
   getActiveSessionForProperty: (propertyId: string) => CleaningSession[];
   getActiveSessionForCleaner: (cleanerId: string) => CleaningSession | null;
+  hasActiveTimerForCleaner: (cleanerId: string) => boolean;
   initializeFromStorage: () => void;
   reset: () => void;
 }
@@ -25,6 +26,15 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   activeSessions: [],
 
   startSession: (propertyId, cleanerId) => {
+    // Check if cleaner already has an ACTIVE timer running
+    const existingActive = get().activeSessions.find(
+      (s) => s.cleanerId === cleanerId && s.status === 'active'
+    );
+    if (existingActive) {
+      console.warn('Cleaner already has an active session running');
+      return null;
+    }
+
     // Initialize all consumables to 0
     const initialConsumables: Consumables = {};
     consumableItems.forEach((item) => {
@@ -36,11 +46,11 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       propertyId,
       cleanerId,
       startTime: Date.now(),
-      totalPausedDuration: 0,
+      accumulatedDuration: 0,
       consumables: initialConsumables,
       status: 'active',
       // Initialize helper fields
-      helperTotalPausedDuration: 0,
+      helperAccumulatedDuration: 0,
       helperActive: false,
     };
 
@@ -53,21 +63,29 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     return newSession;
   },
 
-  pauseSession: (sessionId) =>
+  stopSession: (sessionId) =>
     set((state) => {
       const updated = state.activeSessions.map((session) => {
-        if (session.id === sessionId) {
+        if (session.id === sessionId && session.status === 'active') {
           const now = Date.now();
-          let updatedSession = { ...session, status: 'paused' as const, pausedAt: now };
+          // Calculate elapsed time for this segment and add to accumulated
+          const segmentDuration = now - session.startTime;
+          const newAccumulated = session.accumulatedDuration + segmentDuration;
 
-          // If helper timer is running, pause it too
+          let updatedSession: CleaningSession = {
+            ...session,
+            status: 'stopped',
+            accumulatedDuration: newAccumulated,
+          };
+
+          // If helper timer is running, stop it too
           if (session.helperActive && session.helperStartTime) {
-            const currentHelperDuration = now - session.helperStartTime;
+            const helperSegmentDuration = now - session.helperStartTime;
             updatedSession = {
               ...updatedSession,
-              helperPausedAt: now,
-              helperTotalPausedDuration: session.helperTotalPausedDuration + currentHelperDuration,
+              helperActive: false,
               helperStartTime: undefined,
+              helperAccumulatedDuration: session.helperAccumulatedDuration + helperSegmentDuration,
             };
           }
 
@@ -79,30 +97,27 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       return { activeSessions: updated };
     }),
 
-  resumeSession: (sessionId) =>
+  restartSession: (sessionId) =>
     set((state) => {
+      // First check if cleaner already has another active session
+      const sessionToRestart = state.activeSessions.find((s) => s.id === sessionId);
+      if (!sessionToRestart) return state;
+
+      const hasOtherActive = state.activeSessions.some(
+        (s) => s.cleanerId === sessionToRestart.cleanerId && s.status === 'active' && s.id !== sessionId
+      );
+      if (hasOtherActive) {
+        console.warn('Cleaner already has another active session');
+        return state;
+      }
+
       const updated = state.activeSessions.map((session) => {
-        if (session.id === sessionId && session.pausedAt) {
-          const now = Date.now();
-          const pausedDuration = now - session.pausedAt;
-          let updatedSession = {
+        if (session.id === sessionId && session.status === 'stopped') {
+          return {
             ...session,
             status: 'active' as const,
-            totalPausedDuration: session.totalPausedDuration + pausedDuration,
-            pausedAt: undefined,
+            startTime: Date.now(), // Reset start time for new segment
           };
-
-          // If helper timer was paused, resume it
-          if (session.helperPausedAt) {
-            updatedSession = {
-              ...updatedSession,
-              helperActive: true,
-              helperStartTime: now,
-              helperPausedAt: undefined,
-            };
-          }
-
-          return updatedSession;
         }
         return session;
       });
@@ -139,20 +154,27 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     const session = get().activeSessions.find((s) => s.id === sessionId);
     if (!session) return null;
 
-    // If helper timer is still active, stop it and calculate final duration
-    let finalHelperDuration = session.helperTotalPausedDuration;
+    // Calculate final cleaner duration
+    let finalDuration = session.accumulatedDuration;
+    if (session.status === 'active') {
+      // If still active, add current segment
+      finalDuration += endTime - session.startTime;
+    }
+
+    // Calculate final helper duration
+    let finalHelperDuration = session.helperAccumulatedDuration;
     if (session.helperActive && session.helperStartTime) {
-      const currentSessionDuration = endTime - session.helperStartTime;
-      finalHelperDuration = session.helperTotalPausedDuration + currentSessionDuration;
+      finalHelperDuration += endTime - session.helperStartTime;
     }
 
     const completedSession: CleaningSession = {
       ...session,
       endTime,
       status: 'completed',
+      accumulatedDuration: finalDuration,
       helperActive: false,
       helperStartTime: undefined,
-      helperTotalPausedDuration: finalHelperDuration,
+      helperAccumulatedDuration: finalHelperDuration,
     };
 
     set((state) => {
@@ -183,16 +205,14 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     set((state) => {
       const updated = state.activeSessions.map((session) => {
         if (session.id === sessionId && session.helperStartTime) {
-          // Calculate current session duration and add to accumulated time
-          const currentSessionDuration = Date.now() - session.helperStartTime;
-          const newTotalDuration = session.helperTotalPausedDuration + currentSessionDuration;
+          // Calculate current segment duration and add to accumulated time
+          const segmentDuration = Date.now() - session.helperStartTime;
+          const newAccumulated = session.helperAccumulatedDuration + segmentDuration;
           return {
             ...session,
             helperActive: false,
-            helperPausedAt: undefined,
             helperStartTime: undefined,
-            // Store the total helper duration accumulated so far
-            helperTotalPausedDuration: newTotalDuration,
+            helperAccumulatedDuration: newAccumulated,
           };
         }
         return session;
@@ -205,24 +225,27 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     set((state) => {
       const updated = state.activeSessions.map((session) => {
         if (session.id === sessionId) {
-          // Adjust the start time to change the duration
-          // Adding minutes means moving start time earlier (subtract)
           const adjustmentMs = minutes * 60 * 1000;
-          const newStartTime = session.startTime - adjustmentMs;
 
-          // Calculate what the new duration would be
-          const currentTime = Date.now();
-          const newDuration = currentTime - newStartTime - session.totalPausedDuration;
+          if (session.status === 'active') {
+            // If active, adjust start time (earlier = more time)
+            const newStartTime = session.startTime - adjustmentMs;
+            const currentTime = Date.now();
+            const newDuration = session.accumulatedDuration + (currentTime - newStartTime);
 
-          // Prevent negative durations
-          if (newDuration < 0) {
-            return session;
+            // Prevent negative durations
+            if (newDuration < 0) return session;
+
+            return { ...session, startTime: newStartTime };
+          } else {
+            // If stopped, adjust accumulated duration directly
+            const newAccumulated = session.accumulatedDuration + adjustmentMs;
+
+            // Prevent negative durations
+            if (newAccumulated < 0) return session;
+
+            return { ...session, accumulatedDuration: newAccumulated };
           }
-
-          return {
-            ...session,
-            startTime: newStartTime,
-          };
         }
         return session;
       });
@@ -234,21 +257,17 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     set((state) => {
       const updated = state.activeSessions.map((session) => {
         if (session.id === sessionId) {
-          // Adjust the helper total duration
           const adjustmentMs = minutes * 60 * 1000;
-          const newHelperDuration = session.helperTotalPausedDuration + adjustmentMs;
+          const newHelperDuration = session.helperAccumulatedDuration + adjustmentMs;
 
           // Prevent negative durations
-          if (newHelperDuration < 0) {
-            return session;
-          }
+          if (newHelperDuration < 0) return session;
 
           return {
             ...session,
-            helperTotalPausedDuration: newHelperDuration,
+            helperAccumulatedDuration: newHelperDuration,
             helperActive: false,
             helperStartTime: undefined,
-            helperPausedAt: undefined,
           };
         }
         return session;
@@ -263,6 +282,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   getActiveSessionForCleaner: (cleanerId) => {
     return get().activeSessions.find((s) => s.cleanerId === cleanerId) || null;
+  },
+
+  hasActiveTimerForCleaner: (cleanerId) => {
+    return get().activeSessions.some(
+      (s) => s.cleanerId === cleanerId && s.status === 'active'
+    );
   },
 
   initializeFromStorage: () => {

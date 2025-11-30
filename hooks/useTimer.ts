@@ -7,18 +7,19 @@ export const useTimer = (session: CleaningSession | null) => {
   const calculateElapsedTime = useCallback(() => {
     if (!session) return 0;
 
-    const now = Date.now();
-    let elapsed = 0;
-
     if (session.status === 'active') {
-      elapsed = now - session.startTime - session.totalPausedDuration;
-    } else if (session.status === 'paused' && session.pausedAt) {
-      elapsed = session.pausedAt - session.startTime - session.totalPausedDuration;
-    } else if (session.status === 'completed' && session.endTime) {
-      elapsed = session.endTime - session.startTime - session.totalPausedDuration;
+      // Active: accumulated + current segment
+      const now = Date.now();
+      return session.accumulatedDuration + (now - session.startTime);
+    } else if (session.status === 'stopped') {
+      // Stopped: just the accumulated time
+      return session.accumulatedDuration;
+    } else if (session.status === 'completed') {
+      // Completed: accumulated already includes everything
+      return session.accumulatedDuration;
     }
 
-    return Math.max(0, elapsed);
+    return 0;
   }, [session]);
 
   useEffect(() => {

@@ -30,8 +30,8 @@ export default function PropertyDetailsScreen() {
 
   const currentCleanerSessions = activeSessions.filter((s) => s.cleanerId === authenticatedCleaner.id);
   const isCurrentlyCleaningThis = currentCleanerSessions.some((s) => s.propertyId === id);
-  const otherSessions = currentCleanerSessions.filter((s) => s.propertyId !== id);
-  const hasUnpausedSession = currentCleanerSessions.some((s) => s.propertyId !== id && s.status === 'active');
+  // Check if cleaner has an ACTIVE timer running on another property (can't start new while active)
+  const hasActiveTimerElsewhere = currentCleanerSessions.some((s) => s.propertyId !== id && s.status === 'active');
 
   const handleStartCleaning = async () => {
     try {
@@ -116,19 +116,10 @@ export default function PropertyDetailsScreen() {
           </View>
         )}
 
-        {hasUnpausedSession && !isCurrentlyCleaningThis && (
+        {hasActiveTimerElsewhere && !isCurrentlyCleaningThis && (
           <View style={styles.warningBox}>
             <Text style={styles.warningText}>
-              You must pause your current cleaning session before starting a new property.
-            </Text>
-          </View>
-        )}
-
-        {otherSessions.length > 0 && !hasUnpausedSession && !isCurrentlyCleaningThis && (
-          <View style={styles.infoBox}>
-            <Text style={styles.infoText}>
-              You have {otherSessions.length} paused {otherSessions.length === 1 ? 'property' : 'properties'}.
-              You can start this property.
+              You must stop your current timer before starting a new property.
             </Text>
           </View>
         )}
@@ -144,9 +135,9 @@ export default function PropertyDetailsScreen() {
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={[styles.startButton, hasUnpausedSession && styles.disabledButton]}
+            style={[styles.startButton, hasActiveTimerElsewhere && styles.disabledButton]}
             onPress={handleStartCleaning}
-            disabled={hasUnpausedSession}
+            disabled={hasActiveTimerElsewhere}
           >
             <Text style={styles.buttonText}>Start Cleaning</Text>
           </TouchableOpacity>

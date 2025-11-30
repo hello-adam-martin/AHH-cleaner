@@ -50,11 +50,23 @@ export function PropertyCard({ property }: PropertyCardProps) {
           <Text style={styles.propertyName}>{property.name}</Text>
           <Text style={styles.address}>{property.address}</Text>
         </View>
-        {property.status !== PropertyStatus.PENDING && (
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor() }]}>
-            <Text style={styles.statusText}>{getStatusText()}</Text>
-          </View>
-        )}
+        <View style={styles.headerRight}>
+          {property.syncStatus === 'pending' && (
+            <View style={styles.syncPendingBadge}>
+              <Text style={styles.syncPendingText}>Not synced</Text>
+            </View>
+          )}
+          {property.syncStatus === 'synced' && (
+            <View style={styles.syncedBadge}>
+              <Text style={styles.syncedText}>Synced</Text>
+            </View>
+          )}
+          {property.status !== PropertyStatus.PENDING && (
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor() }]}>
+              <Text style={styles.statusText}>{getStatusText()}</Text>
+            </View>
+          )}
+        </View>
       </View>
 
       {property.nextCheckinDate && (
@@ -130,6 +142,33 @@ const styles = StyleSheet.create({
   headerLeft: {
     flex: 1,
     marginRight: 12,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  syncPendingBadge: {
+    backgroundColor: '#FF9800',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  syncPendingText: {
+    fontSize: 10,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#FFFFFF',
+  },
+  syncedBadge: {
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  syncedText: {
+    fontSize: 10,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#4CAF50',
   },
   propertyName: {
     fontSize: 18,
