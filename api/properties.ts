@@ -14,13 +14,13 @@ import {
 async function fetchNextCheckinDate(base: any, propertyId: string): Promise<string | undefined> {
   try {
     const todayDate = getTodayDateString();
-    console.log(`Fetching next check-in for property ID: ${propertyId}...`);
+    console.log(`Fetching next check-in for property ID: ${propertyId} (today: ${todayDate})...`);
 
     const records = await base(BOOKINGS_TABLE)
       .select({
         filterByFormula: `AND(
           {Property ID} = "${propertyId}",
-          IS_AFTER({${CHECKIN_DATE_FIELD}}, DATEADD('${todayDate}', -1, 'days'))
+          {${CHECKIN_DATE_FIELD}} >= '${todayDate}'
         )`,
         fields: [CHECKIN_DATE_FIELD],
         sort: [{ field: CHECKIN_DATE_FIELD, direction: 'asc' }],
