@@ -38,11 +38,12 @@ export function getAirtableBase(): Airtable.Base | null {
 }
 
 export function getTodayDateString(): string {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  // Use New Zealand timezone since properties are in Akaroa, NZ
+  const nzDate = new Date().toLocaleDateString('en-CA', {
+    timeZone: 'Pacific/Auckland'
+  });
+  // en-CA locale gives us YYYY-MM-DD format
+  return nzDate;
 }
 
 // Consumable prices (duplicated from client for server-side calculation)

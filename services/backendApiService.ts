@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import type { Property, Cleaner, CompletedSession } from '@/types';
 
 // Backend API URL (set via environment variable)
@@ -100,9 +101,14 @@ export async function testAirtableConnection(): Promise<boolean> {
 
 /**
  * Check if backend API is configured
- * Backend is considered configured if EXPO_PUBLIC_API_URL env var is explicitly set
- * (not just using the /api fallback which only works on web)
+ * On web: /api fallback works (same-domain Vercel deployment)
+ * On native: requires explicit EXPO_PUBLIC_API_URL env var
  */
 export function isAirtableConfigured(): boolean {
+  if (Platform.OS === 'web') {
+    // On web, /api fallback works since we're on the same domain
+    return true;
+  }
+  // On native, we need an explicit API URL
   return Boolean(process.env.EXPO_PUBLIC_API_URL);
 }
