@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold } from '@expo-google-fonts/nunito';
@@ -9,6 +9,7 @@ import { initializeApp } from '@/services/initializeApp';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const [appReady, setAppReady] = useState(false);
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
     Nunito_600SemiBold,
@@ -19,13 +20,14 @@ export default function RootLayout() {
     if (fontsLoaded) {
       // Initialize app data (async)
       initializeApp().then(() => {
+        setAppReady(true);
         // Hide splash screen after initialization completes
         SplashScreen.hideAsync();
       });
     }
   }, [fontsLoaded]);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !appReady) {
     return null;
   }
 
