@@ -22,6 +22,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     // Store authenticated cleaner
     storageHelpers.setObject('authenticated_cleaner', cleaner);
+    console.log('[Auth] Saved to storage:', cleaner.name);
 
     set({
       authenticatedCleaner: cleaner,
@@ -43,12 +44,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   initializeFromStorage: () => {
     const storedCleaner = storageHelpers.getObject<Cleaner>('authenticated_cleaner');
+    console.log('[Auth] initializeFromStorage - storedCleaner:', storedCleaner);
 
     if (storedCleaner) {
       set({
         authenticatedCleaner: storedCleaner,
         isAuthenticated: true,
       });
+      console.log('[Auth] Restored session for:', storedCleaner.name);
+    } else {
+      console.log('[Auth] No stored session found');
     }
   },
 }));
