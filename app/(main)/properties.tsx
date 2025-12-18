@@ -134,13 +134,22 @@ export default function PropertiesScreen() {
   });
 
   // Sort properties: in-progress first, then pending, then completed
+  // Within each status, sort by next check-in date (earliest first)
   const sortedProperties = [...propertiesWithStatus].sort((a, b) => {
     const statusOrder = {
       [PropertyStatus.IN_PROGRESS]: 0,
       [PropertyStatus.PENDING]: 1,
       [PropertyStatus.COMPLETED]: 2,
     };
-    return statusOrder[a.status] - statusOrder[b.status];
+
+    // First sort by status
+    const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+    if (statusDiff !== 0) return statusDiff;
+
+    // Then sort by next check-in date (earliest first, no date goes last)
+    const dateA = a.nextCheckinDate ? new Date(a.nextCheckinDate).getTime() : Infinity;
+    const dateB = b.nextCheckinDate ? new Date(b.nextCheckinDate).getTime() : Infinity;
+    return dateA - dateB;
   });
 
   return (
