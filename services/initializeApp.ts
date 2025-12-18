@@ -27,6 +27,7 @@ export const initializeApp = async () => {
   usePropertiesStore.getState().initializeFromStorage();
   useSessionStore.getState().initializeFromStorage();
   useHistoryStore.getState().initializeFromStorage();
+  useAuthStore.getState().initializeFromStorage();
 
   // Handle cleaners: fetch from Airtable if configured, otherwise use seed data
   const { cleaners, setCleaners } = useCleanerStore.getState();
