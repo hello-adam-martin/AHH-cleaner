@@ -39,10 +39,6 @@ class WebStorage implements Storage {
 
   async waitForReady(): Promise<void> {
     // localStorage is synchronous, always ready
-    // Debug: log what's in localStorage
-    if (typeof window !== 'undefined' && window.localStorage) {
-      console.log('[Storage] localStorage authenticated_cleaner:', window.localStorage.getItem('authenticated_cleaner'));
-    }
     return;
   }
 }
