@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router';
+import { Stack, router, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useFonts } from 'expo-font';
@@ -18,6 +18,9 @@ export default function RootLayout() {
     Nunito_700Bold,
   });
 
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const segments = useSegments();
+
   useEffect(() => {
     if (fontsLoaded) {
       // Initialize app data (async)
@@ -28,6 +31,26 @@ export default function RootLayout() {
       });
     }
   }, [fontsLoaded]);
+
+  // Handle auth-based routing
+  useEffect(() => {
+    if (!appReady) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+    const inMainGroup = segments[0] === '(main)';
+
+    console.log('[Layout] Auth routing check:', { isAuthenticated, segments: segments.join('/'), inAuthGroup, inMainGroup });
+
+    if (isAuthenticated && (inAuthGroup || segments[0] === undefined)) {
+      // User is authenticated but on auth screen or index - redirect to main
+      console.log('[Layout] Redirecting to properties');
+      router.replace('/(main)/properties');
+    } else if (!isAuthenticated && inMainGroup) {
+      // User is not authenticated but on main screen - redirect to login
+      console.log('[Layout] Redirecting to login');
+      router.replace('/(auth)/login');
+    }
+  }, [appReady, isAuthenticated, segments]);
 
   if (!fontsLoaded || !appReady) {
     return null;
@@ -48,6 +71,7 @@ export default function RootLayout() {
 function DebugIndicator() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const authenticatedCleaner = useAuthStore((state) => state.authenticatedCleaner);
+  const segments = useSegments();
   const [localStorageValue, setLocalStorageValue] = useState<string>('checking...');
 
   useEffect(() => {
@@ -65,6 +89,9 @@ function DebugIndicator() {
         Auth: {isAuthenticated ? '✓' : '✗'} |
         Store: {authenticatedCleaner?.name || 'null'} |
         LS: {localStorageValue}
+      </Text>
+      <Text style={styles.debugText}>
+        Route: /{segments.join('/')}
       </Text>
     </View>
   );
