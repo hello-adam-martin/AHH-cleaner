@@ -4,7 +4,7 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import { useAuthStore } from '@/stores/authStore';
 import { fetchTodaysCheckouts, fetchCleaners, isAirtableConfigured } from './backendApiService';
-import { storageHelpers, storageKeys } from './storage';
+import { storageHelpers, storageKeys, waitForStorageReady } from './storage';
 
 /**
  * Check if we need to fetch new data from Airtable
@@ -22,6 +22,9 @@ function shouldFetchFromAirtable(): boolean {
  * Initialize the app - load data from storage and fetch from Airtable if needed
  */
 export const initializeApp = async () => {
+  // Wait for storage to be ready before reading
+  await waitForStorageReady();
+
   // Initialize all stores from storage
   useCleanerStore.getState().initializeFromStorage();
   usePropertiesStore.getState().initializeFromStorage();

@@ -7,6 +7,7 @@ interface Storage {
   set(key: string, value: string): void;
   delete(key: string): void;
   clearAll(): void | Promise<void>;
+  waitForReady(): Promise<void>;
 }
 
 // Web fallback using localStorage
@@ -35,15 +36,24 @@ class WebStorage implements Storage {
       window.localStorage.clear();
     }
   }
+
+  async waitForReady(): Promise<void> {
+    // localStorage is synchronous, always ready
+    return;
+  }
 }
 
 // AsyncStorage wrapper for React Native (synchronous interface)
 class AsyncStorageWrapper implements Storage {
   private cache: Map<string, string> = new Map();
-  private initialized = false;
+  private initPromise: Promise<void>;
 
-  private async initialize() {
-    if (this.initialized) return;
+  constructor() {
+    // Initialize cache asynchronously and store the promise
+    this.initPromise = this.initialize();
+  }
+
+  private async initialize(): Promise<void> {
     try {
       const keys = await AsyncStorage.getAllKeys();
       const items = await AsyncStorage.multiGet(keys);
@@ -52,15 +62,13 @@ class AsyncStorageWrapper implements Storage {
           this.cache.set(key, value);
         }
       });
-      this.initialized = true;
     } catch (e) {
       console.error('Failed to initialize AsyncStorage cache', e);
     }
   }
 
-  constructor() {
-    // Initialize cache asynchronously
-    this.initialize();
+  async waitForReady(): Promise<void> {
+    await this.initPromise;
   }
 
   getString(key: string): string | undefined {
@@ -105,6 +113,8 @@ if (Platform.OS === 'web') {
 }
 
 export { storage };
+
+export const waitForStorageReady = () => storage.waitForReady();
 
 export const storageKeys = {
   CLEANERS: 'cleaners',
