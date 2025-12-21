@@ -22,6 +22,7 @@ export interface Property {
   imageUrl?: string;
   cleaningTime?: number; // Total cleaning time in hours (from Airtable)
   consumablesCost?: number; // Total consumables cost in dollars (from Airtable)
+  guestCount?: number; // Number of guests staying (from Airtable)
 }
 
 export interface ConsumableItem {

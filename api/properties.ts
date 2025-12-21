@@ -80,6 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           'Property ID',
           CLEANING_DURATION_FIELD,
           CONSUMABLES_COST_FIELD,
+          'Guests',
         ],
       })
       .all();
@@ -119,6 +120,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const cleaningTimeRaw = (fields[CLEANING_DURATION_FIELD] as number) || 0;
       const cleaningTime = cleaningTimeRaw / 3600; // Convert seconds to hours
       const consumablesCost = (fields[CONSUMABLES_COST_FIELD] as number) || 0;
+      const guestCount = (fields['Guests'] as number) || undefined;
 
       properties.push({
         id: record.id,
@@ -130,6 +132,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         notes: fields['Notes'] as string,
         cleaningTime,
         consumablesCost,
+        guestCount,
       });
     }
 

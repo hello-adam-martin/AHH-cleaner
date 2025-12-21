@@ -76,9 +76,18 @@ export function PropertyCard({ property }: PropertyCardProps) {
         </View>
       )}
 
-      {(property.cleaningTime !== undefined && property.cleaningTime > 0) ||
+      {(property.guestCount !== undefined && property.guestCount > 0) ||
+       (property.cleaningTime !== undefined && property.cleaningTime > 0) ||
        (property.consumablesCost !== undefined && property.consumablesCost > 0) ? (
         <View style={styles.summarySection}>
+          {property.guestCount !== undefined && property.guestCount > 0 && (
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryIcon}>👤</Text>
+              <Text style={styles.summaryText}>
+                {property.guestCount} {property.guestCount === 1 ? 'guest' : 'guests'}
+              </Text>
+            </View>
+          )}
           {property.cleaningTime !== undefined && property.cleaningTime > 0 && (
             <View style={styles.summaryItem}>
               <Text style={styles.summaryIcon}>⏱</Text>

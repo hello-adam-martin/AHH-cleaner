@@ -85,6 +85,14 @@ export default function PropertyDetailsScreen() {
         </View>
 
         <View style={styles.section}>
+          {property.guestCount !== undefined && property.guestCount > 0 && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>Guests:</Text>
+              <Text style={styles.value}>
+                {property.guestCount} {property.guestCount === 1 ? 'guest' : 'guests'}
+              </Text>
+            </View>
+          )}
           <View style={styles.infoRow}>
             <Text style={styles.label}>Next Check-in:</Text>
             <Text style={styles.value}>
