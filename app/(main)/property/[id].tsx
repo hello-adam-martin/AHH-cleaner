@@ -59,6 +59,14 @@ export default function PropertyDetailsScreen() {
         <Text style={styles.propertyName}>{property.name}</Text>
         <Text style={styles.address}>{property.address}</Text>
 
+        {property.guestCount !== undefined && property.guestCount > 0 && (
+          <View style={styles.guestCountBadge}>
+            <Text style={styles.guestCountText}>
+              👤 {property.guestCount} {property.guestCount === 1 ? 'guest' : 'guests'} stayed
+            </Text>
+          </View>
+        )}
+
         <View style={styles.cleanerIndicator}>
           <Text style={styles.cleanerLabel}>Logged in as:</Text>
           <Text style={styles.cleanerNameText}>{authenticatedCleaner.name}</Text>
@@ -85,14 +93,6 @@ export default function PropertyDetailsScreen() {
         </View>
 
         <View style={styles.section}>
-          {property.guestCount !== undefined && property.guestCount > 0 && (
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>Guests:</Text>
-              <Text style={styles.value}>
-                {property.guestCount} {property.guestCount === 1 ? 'guest' : 'guests'}
-              </Text>
-            </View>
-          )}
           <View style={styles.infoRow}>
             <Text style={styles.label}>Next Check-in:</Text>
             <Text style={styles.value}>
@@ -188,7 +188,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Nunito_400Regular',
     color: '#666',
+    marginBottom: 12,
+  },
+  guestCountBadge: {
+    backgroundColor: '#E3F2FD',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
     marginBottom: 16,
+  },
+  guestCountText: {
+    fontSize: 15,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#1976D2',
   },
   cleanerIndicator: {
     flexDirection: 'row',
