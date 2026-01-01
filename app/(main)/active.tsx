@@ -56,6 +56,16 @@ export default function ActiveCleaningScreen() {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
 
+  // Stop confirmation modal state
+  const [showStopConfirmModal, setShowStopConfirmModal] = useState(false);
+
+  // Success celebration modal state
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [completedSummary, setCompletedSummary] = useState<{
+    propertyName: string;
+    totalTime: number;
+  } | null>(null);
+
   // Time adjustment state
   const [adjustingTimer, setAdjustingTimer] = useState<'cleaner' | 'helper' | null>(null);
 
@@ -98,7 +108,19 @@ export default function ActiveCleaningScreen() {
       } catch (e) {
         // Haptics not available on web
       }
+      setShowStopConfirmModal(true);
+    }
+  };
+
+  const handleConfirmStop = async () => {
+    if (session) {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } catch (e) {
+        // Haptics not available on web
+      }
       stopSession(session.id);
+      setShowStopConfirmModal(false);
     }
   };
 
@@ -129,6 +151,12 @@ export default function ActiveCleaningScreen() {
 
     setIsCompleting(true);
 
+    // Store the summary before completing (session will be removed after completion)
+    const summaryData = {
+      propertyName: property.name,
+      totalTime: elapsedTime + helperElapsedTime,
+    };
+
     try {
       // Complete the session (this stops the timer)
       const completedSession = completeSession(session.id, Date.now());
@@ -136,10 +164,6 @@ export default function ActiveCleaningScreen() {
       if (completedSession) {
         // Add to history (this will sync to Airtable)
         await addCompletedSession(completedSession, property, authenticatedCleaner);
-
-        // Note: No need to refresh properties here - the UI calculates status
-        // from session stores, not from property data. Background refresh
-        // happens automatically on next app launch.
 
         // Haptic feedback
         try {
@@ -150,7 +174,16 @@ export default function ActiveCleaningScreen() {
 
         setShowCompleteModal(false);
         setIsCompleting(false);
-        router.push('/(main)/properties');
+
+        // Show success celebration
+        setCompletedSummary(summaryData);
+        setShowSuccessModal(true);
+
+        // Auto-navigate after 3 seconds
+        setTimeout(() => {
+          setShowSuccessModal(false);
+          router.push('/(main)/properties');
+        }, 3000);
       } else {
         setIsCompleting(false);
       }
@@ -158,6 +191,11 @@ export default function ActiveCleaningScreen() {
       console.error('Error completing session:', error);
       setIsCompleting(false);
     }
+  };
+
+  const handleDismissSuccess = () => {
+    setShowSuccessModal(false);
+    router.push('/(main)/properties');
   };
 
   const handleAdjustCleanerTime = (minutes: number) => {
@@ -513,6 +551,77 @@ export default function ActiveCleaningScreen() {
                 )}
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Stop Timer Confirmation Modal */}
+      <Modal
+        visible={showStopConfirmModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowStopConfirmModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Stop Timer?</Text>
+            <Text style={styles.modalProperty}>{property?.name}</Text>
+
+            <View style={styles.modalSummary}>
+              <View style={styles.modalTimeRow}>
+                <Text style={styles.modalLabel}>Current Time</Text>
+                <Text style={styles.modalValue}>{formatCompactTime(elapsedTime + helperElapsedTime)}</Text>
+              </View>
+              <Text style={styles.modalSmallText}>
+                You can restart the timer later or complete the cleaning.
+              </Text>
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setShowStopConfirmModal(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalConfirmBtn, styles.modalStopBtn]}
+                onPress={handleConfirmStop}
+              >
+                <Text style={styles.modalConfirmText}>Stop Timer</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Success Celebration Modal */}
+      <Modal
+        visible={showSuccessModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleDismissSuccess}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.successModalContent}>
+            <View style={styles.successCheckmark}>
+              <Text style={styles.successCheckmarkText}>✓</Text>
+            </View>
+            <Text style={styles.successTitle}>Cleaning Complete!</Text>
+            {completedSummary && (
+              <>
+                <Text style={styles.successProperty}>{completedSummary.propertyName}</Text>
+                <Text style={styles.successTime}>
+                  Total time: {formatCompactTime(completedSummary.totalTime)}
+                </Text>
+              </>
+            )}
+            <TouchableOpacity
+              style={styles.successButton}
+              onPress={handleDismissSuccess}
+            >
+              <Text style={styles.successButtonText}>Back to Properties</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1040,5 +1149,59 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  modalStopBtn: {
+    backgroundColor: '#FF9800',
+  },
+  successModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 32,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+  },
+  successCheckmark: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#4CAF50',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  successCheckmarkText: {
+    fontSize: 40,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  successTitle: {
+    fontSize: 24,
+    fontFamily: 'Nunito_700Bold',
+    color: theme.colors.text,
+    marginBottom: 8,
+  },
+  successProperty: {
+    fontSize: 18,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#666',
+    marginBottom: 4,
+  },
+  successTime: {
+    fontSize: 16,
+    fontFamily: 'Nunito_400Regular',
+    color: '#999',
+    marginBottom: 24,
+  },
+  successButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  successButtonText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_700Bold',
+    color: '#FFFFFF',
   },
 });

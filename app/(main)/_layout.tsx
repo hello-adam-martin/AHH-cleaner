@@ -1,9 +1,24 @@
 import { Tabs, Redirect } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useAuthStore } from '@/stores/authStore';
+import { useSessionStore } from '@/stores/sessionStore';
+import { TabBarIcon } from '@/components/TabBarIcon';
 
 export default function MainLayout() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const authenticatedCleaner = useAuthStore((state) => state.authenticatedCleaner);
+  const activeSessions = useSessionStore((state) => state.activeSessions);
+
+  // Get sessions for current cleaner
+  const cleanerSessions = authenticatedCleaner
+    ? activeSessions.filter((s) => s.cleanerId === authenticatedCleaner.id)
+    : [];
+
+  // Count active sessions for badge
+  const cleanerSessionCount = cleanerSessions.length;
+
+  // Check if any session has an active (running) timer
+  const hasRunningTimer = cleanerSessions.some((s) => s.status === 'active');
 
   // Protect all main routes - redirect to login if not authenticated
   if (!isAuthenticated) {
@@ -21,7 +36,7 @@ export default function MainLayout() {
       <Tabs.Screen
         name="properties"
         options={{
-          title: 'Properties',
+          title: 'Today',
           tabBarIcon: ({ color }) => (
             <SymbolView name="house.fill" size={24} tintColor={color} />
           ),
@@ -30,16 +45,17 @@ export default function MainLayout() {
       <Tabs.Screen
         name="active"
         options={{
-          title: 'Active',
+          title: 'Cleaning',
           tabBarIcon: ({ color }) => (
-            <SymbolView name="timer" size={24} tintColor={color} />
+            <TabBarIcon name="timer" color={color} showPulse={hasRunningTimer} />
           ),
+          tabBarBadge: cleanerSessionCount > 0 ? cleanerSessionCount : undefined,
         }}
       />
       <Tabs.Screen
         name="history"
         options={{
-          title: 'History',
+          title: 'Done',
           tabBarIcon: ({ color }) => (
             <SymbolView name="clock.fill" size={24} tintColor={color} />
           ),

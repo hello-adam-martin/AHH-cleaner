@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, GestureResponderEvent } from 'react-native';
 import { router } from 'expo-router';
 import type { PropertyWithStatus } from '@/types';
 import { PropertyStatus } from '@/types';
@@ -8,11 +8,20 @@ import { theme } from '@/constants/theme';
 
 interface PropertyCardProps {
   property: PropertyWithStatus;
+  onQuickStart?: (propertyId: string) => void;
+  canQuickStart?: boolean;
 }
 
-export function PropertyCard({ property }: PropertyCardProps) {
+export function PropertyCard({ property, onQuickStart, canQuickStart = true }: PropertyCardProps) {
   const handlePress = () => {
     router.push(`/(main)/property/${property.id}`);
+  };
+
+  const handleQuickStart = (e: GestureResponderEvent) => {
+    e.stopPropagation();
+    if (onQuickStart) {
+      onQuickStart(property.id);
+    }
   };
 
   const getStatusColor = () => {
@@ -61,7 +70,21 @@ export function PropertyCard({ property }: PropertyCardProps) {
               <Text style={styles.syncedText}>Synced</Text>
             </View>
           )}
-          {property.status !== PropertyStatus.PENDING && (
+          {property.status === PropertyStatus.PENDING && onQuickStart && canQuickStart && (
+            <TouchableOpacity
+              style={styles.quickStartButton}
+              onPress={handleQuickStart}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.quickStartText}>Start</Text>
+            </TouchableOpacity>
+          )}
+          {property.status === PropertyStatus.IN_PROGRESS && (
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor() }]}>
+              <Text style={styles.statusText}>{getStatusText()}</Text>
+            </View>
+          )}
+          {property.status === PropertyStatus.COMPLETED && (
             <View style={[styles.statusBadge, { backgroundColor: getStatusColor() }]}>
               <Text style={styles.statusText}>{getStatusText()}</Text>
             </View>
@@ -198,6 +221,19 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontFamily: 'Nunito_600SemiBold',
+    color: '#FFFFFF',
+  },
+  quickStartButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  quickStartText: {
+    fontSize: 14,
+    fontFamily: 'Nunito_700Bold',
     color: '#FFFFFF',
   },
   timeInfo: {
