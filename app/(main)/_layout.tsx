@@ -36,9 +36,10 @@ export default function MainLayout() {
           fontFamily: 'Nunito_600SemiBold',
         },
         tabBarStyle: {
-          height: 80,
-          paddingTop: 10,
-          paddingBottom: 20,
+          height: 85,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 8,
         },
       }}
     >
