@@ -64,6 +64,7 @@ export interface PropertyWithStatus extends Property {
   activeCleaners: Cleaner[];
   activeSessions: CleaningSession[];
   syncStatus?: 'synced' | 'pending' | 'none'; // Sync status for completed sessions
+  isOverdue?: boolean; // True if this is a missed cleaning from a previous day
 }
 
 export interface CompletedSession extends CleaningSession {

@@ -60,6 +60,11 @@ export function PropertyCard({ property, onQuickStart, canQuickStart = true }: P
           <Text style={styles.address}>{property.address}</Text>
         </View>
         <View style={styles.headerRight}>
+          {property.isOverdue && (
+            <View style={styles.overdueBadge}>
+              <Text style={styles.overdueText}>Overdue</Text>
+            </View>
+          )}
           {property.syncStatus === 'pending' && (
             <View style={styles.syncPendingBadge}>
               <Text style={styles.syncPendingText}>Not synced</Text>
@@ -179,6 +184,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 6,
+  },
+  overdueBadge: {
+    backgroundColor: '#E65100',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  overdueText: {
+    fontSize: 10,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#FFFFFF',
   },
   syncPendingBadge: {
     backgroundColor: '#FF9800',

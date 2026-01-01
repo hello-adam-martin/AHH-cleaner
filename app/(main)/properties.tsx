@@ -155,8 +155,8 @@ export default function PropertiesScreen() {
     router.push('/(main)/active');
   };
 
-  // Enhance properties with status and active cleaners
-  const propertiesWithStatus: PropertyWithStatus[] = properties.map((property) => {
+  // Helper function to enhance a property with status info
+  const enhanceProperty = (property: typeof properties[0], isOverdue: boolean = false): PropertyWithStatus => {
     const propertySessions = activeSessions.filter(
       (session) => session.propertyId === property.id
     );
@@ -188,12 +188,22 @@ export default function PropertiesScreen() {
       activeCleaners,
       activeSessions: propertySessions,
       syncStatus,
+      isOverdue,
     };
-  });
+  };
 
-  // Sort properties: in-progress first, then pending, then completed
-  // Within each status, sort by next check-in date (earliest first)
-  const sortedProperties = [...propertiesWithStatus].sort((a, b) => {
+  // Combine today's properties with missed cleanings (filtered for duplicates)
+  const todayPropertyIds = new Set(properties.map((p) => p.id));
+  const uniqueMissedCleanings = missedCleanings.filter((p) => !todayPropertyIds.has(p.id));
+
+  const allPropertiesWithStatus: PropertyWithStatus[] = [
+    ...properties.map((p) => enhanceProperty(p, false)),
+    ...uniqueMissedCleanings.map((p) => enhanceProperty(p, true)),
+  ];
+
+  // Sort properties: in-progress first, then overdue pending, then pending, then completed
+  // Within each group, sort by checkout date (oldest first for overdue, next check-in for today)
+  const sortedProperties = [...allPropertiesWithStatus].sort((a, b) => {
     const statusOrder = {
       [PropertyStatus.IN_PROGRESS]: 0,
       [PropertyStatus.PENDING]: 1,
@@ -203,6 +213,12 @@ export default function PropertiesScreen() {
     // First sort by status
     const statusDiff = statusOrder[a.status] - statusOrder[b.status];
     if (statusDiff !== 0) return statusDiff;
+
+    // Within pending status, overdue items come first
+    if (a.status === PropertyStatus.PENDING && b.status === PropertyStatus.PENDING) {
+      if (a.isOverdue && !b.isOverdue) return -1;
+      if (!a.isOverdue && b.isOverdue) return 1;
+    }
 
     // Then sort by next check-in date (earliest first, no date goes last)
     const dateA = a.nextCheckinDate ? new Date(a.nextCheckinDate).getTime() : Infinity;
@@ -387,34 +403,6 @@ export default function PropertiesScreen() {
             colors={[theme.colors.text]}
           />
         }
-        ListHeaderComponent={
-          missedCleanings.length > 0 ? (
-            <View style={styles.missedSection}>
-              <View style={styles.missedHeader}>
-                <Text style={styles.missedTitle}>Missed Cleanings ({missedCleanings.length})</Text>
-                <Text style={styles.missedSubtext}>
-                  Checkouts from the past week that weren't cleaned
-                </Text>
-              </View>
-              {missedCleanings.map((property) => (
-                <PropertyCard
-                  key={property.id}
-                  property={{
-                    ...property,
-                    status: PropertyStatus.PENDING,
-                    activeCleaners: [],
-                    activeSessions: [],
-                  }}
-                  onQuickStart={handleQuickStart}
-                  canQuickStart={!hasActiveTimer}
-                />
-              ))}
-              <View style={styles.missedDivider}>
-                <Text style={styles.missedDividerText}>Today's Properties</Text>
-              </View>
-            </View>
-          ) : null
-        }
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
@@ -592,39 +580,5 @@ const styles = StyleSheet.create({
   },
   filterChipTextActive: {
     color: '#FFFFFF',
-  },
-  missedSection: {
-    marginBottom: 16,
-  },
-  missedHeader: {
-    backgroundColor: '#FFF3E0',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9800',
-  },
-  missedTitle: {
-    fontSize: 18,
-    fontFamily: 'Nunito_700Bold',
-    color: '#E65100',
-    marginBottom: 4,
-  },
-  missedSubtext: {
-    fontSize: 14,
-    fontFamily: 'Nunito_400Regular',
-    color: '#F57C00',
-  },
-  missedDivider: {
-    marginTop: 16,
-    marginBottom: 8,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  missedDividerText: {
-    fontSize: 16,
-    fontFamily: 'Nunito_700Bold',
-    color: theme.colors.text,
   },
 });
