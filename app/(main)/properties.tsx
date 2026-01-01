@@ -25,9 +25,7 @@ export default function PropertiesScreen() {
   const authenticatedCleaner = useAuthStore((state) => state.authenticatedCleaner);
   const logout = useAuthStore((state) => state.logout);
   const properties = usePropertiesStore((state) => state.properties);
-  const missedCleanings = usePropertiesStore((state) => state.missedCleanings);
   const setProperties = usePropertiesStore((state) => state.setProperties);
-  const refreshMissedCleanings = usePropertiesStore((state) => state.refreshMissedCleanings);
   const cleaners = useCleanerStore((state) => state.cleaners);
   const activeSessions = useSessionStore((state) => state.activeSessions);
   const startSession = useSessionStore((state) => state.startSession);
@@ -120,8 +118,6 @@ export default function PropertiesScreen() {
       } else {
         console.log('No properties returned from Airtable');
       }
-      // Also refresh missed cleanings
-      await refreshMissedCleanings();
     } catch (error) {
       console.error('Error refreshing properties:', error);
     } finally {
@@ -156,7 +152,7 @@ export default function PropertiesScreen() {
   };
 
   // Helper function to enhance a property with status info
-  const enhanceProperty = (property: typeof properties[0], isOverdue: boolean = false): PropertyWithStatus => {
+  const enhanceProperty = (property: typeof properties[0]): PropertyWithStatus => {
     const propertySessions = activeSessions.filter(
       (session) => session.propertyId === property.id
     );
@@ -188,18 +184,11 @@ export default function PropertiesScreen() {
       activeCleaners,
       activeSessions: propertySessions,
       syncStatus,
-      isOverdue,
     };
   };
 
-  // Combine today's properties with missed cleanings (filtered for duplicates)
-  const todayPropertyIds = new Set(properties.map((p) => p.id));
-  const uniqueMissedCleanings = missedCleanings.filter((p) => !todayPropertyIds.has(p.id));
-
-  const allPropertiesWithStatus: PropertyWithStatus[] = [
-    ...properties.map((p) => enhanceProperty(p, false)),
-    ...uniqueMissedCleanings.map((p) => enhanceProperty(p, true)),
-  ];
+  // Enhance all properties with status info (isOverdue comes from API)
+  const allPropertiesWithStatus: PropertyWithStatus[] = properties.map((p) => enhanceProperty(p));
 
   // Sort properties: in-progress first, then overdue pending, then pending, then completed
   // Within each group, sort by checkout date (oldest first for overdue, next check-in for today)

@@ -23,6 +23,7 @@ export interface Property {
   cleaningTime?: number; // Total cleaning time in hours (from Airtable)
   consumablesCost?: number; // Total consumables cost in dollars (from Airtable)
   guestCount?: number; // Number of guests staying (from Airtable)
+  isOverdue?: boolean; // True if checkout date is before today (missed cleaning)
 }
 
 export interface ConsumableItem {
@@ -64,7 +65,6 @@ export interface PropertyWithStatus extends Property {
   activeCleaners: Cleaner[];
   activeSessions: CleaningSession[];
   syncStatus?: 'synced' | 'pending' | 'none'; // Sync status for completed sessions
-  isOverdue?: boolean; // True if this is a missed cleaning from a previous day
 }
 
 export interface CompletedSession extends CleaningSession {

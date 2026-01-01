@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import {
   getAirtableBase,
   getTodayDateString,
+  getDateDaysAgo,
   BOOKINGS_TABLE,
   PROPERTIES_TABLE,
   CHECKOUT_DATE_FIELD,
@@ -65,11 +66,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const todayDate = getTodayDateString();
-    console.log(`Fetching checkouts for ${todayDate}...`);
+    const sevenDaysAgo = getDateDaysAgo(7);
+    console.log(`Fetching checkouts from ${sevenDaysAgo} to ${todayDate}...`);
 
+    // Fetch today's checkouts (all of them)
+    // AND past 7 days checkouts where Cleaning Time = 0 (missed cleanings)
     const records = await base(BOOKINGS_TABLE)
       .select({
-        filterByFormula: `IS_SAME({${CHECKOUT_DATE_FIELD}}, '${todayDate}', 'day')`,
+        filterByFormula: `OR(
+          IS_SAME({${CHECKOUT_DATE_FIELD}}, '${todayDate}', 'day'),
+          AND(
+            {${CHECKOUT_DATE_FIELD}} >= '${sevenDaysAgo}',
+            {${CHECKOUT_DATE_FIELD}} < '${todayDate}',
+            OR({${CLEANING_DURATION_FIELD}} = 0, {${CLEANING_DURATION_FIELD}} = BLANK())
+          )
+        )`,
         fields: [
           CHECKOUT_DATE_FIELD,
           CHECKIN_DATE_FIELD,
@@ -85,7 +96,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
       .all();
 
-    console.log(`Found ${records.length} checkouts for today`);
+    console.log(`Found ${records.length} checkouts (today + missed)`);
 
     const properties = [];
 
@@ -122,17 +133,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const consumablesCost = (fields[CONSUMABLES_COST_FIELD] as number) || 0;
       const guestCount = (fields['Guests'] as number) || undefined;
 
+      // Calculate isOverdue: true if checkout date is before today
+      const checkoutDate = fields[CHECKOUT_DATE_FIELD] as string;
+      const isOverdue = checkoutDate < todayDate;
+
       properties.push({
         id: record.id,
         name: String(propertyName || 'Unknown Property'),
         address: String(propertyAddress || ''),
-        checkoutDate: fields[CHECKOUT_DATE_FIELD] as string,
+        checkoutDate,
         checkinDate: fields[CHECKIN_DATE_FIELD] as string,
         nextCheckinDate,
         notes: fields['Notes'] as string,
         cleaningTime,
         consumablesCost,
         guestCount,
+        isOverdue,
       });
     }
 
