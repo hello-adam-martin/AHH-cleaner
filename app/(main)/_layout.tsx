@@ -31,6 +31,16 @@ export default function MainLayout() {
         headerShown: false,
         tabBarActiveTintColor: '#000000',
         tabBarInactiveTintColor: '#999999',
+        tabBarStyle: {
+          paddingTop: 8,
+          paddingBottom: 8,
+          height: 60,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontFamily: 'Nunito_600SemiBold',
+          marginTop: 4,
+        },
       }}
     >
       <Tabs.Screen
@@ -57,7 +67,7 @@ export default function MainLayout() {
         options={{
           title: 'Done',
           tabBarIcon: ({ color }) => (
-            <SymbolView name="clock.fill" size={24} tintColor={color} />
+            <SymbolView name="checkmark.circle.fill" size={24} tintColor={color} />
           ),
         }}
       />
