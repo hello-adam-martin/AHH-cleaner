@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, ScrollView } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { useCleanerStore } from '@/stores/cleanerStore';
@@ -105,7 +105,11 @@ export default function LoginScreen() {
         )}
 
         {selectedCleaner && (
-          <View style={styles.pinContainer}>
+          <ScrollView
+            style={styles.pinScrollView}
+            contentContainerStyle={styles.pinContainer}
+            showsVerticalScrollIndicator={false}
+          >
             <TouchableOpacity onPress={handleBack} style={styles.backLink}>
               <Text style={styles.backLinkText}>← Back</Text>
             </TouchableOpacity>
@@ -174,7 +178,7 @@ export default function LoginScreen() {
                 <Text style={styles.keypadButtonText}>⌫</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </ScrollView>
         )}
       </View>
     </SafeAreaView>
@@ -236,10 +240,15 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginLeft: 16,
   },
-  pinContainer: {
+  pinScrollView: {
     flex: 1,
+  },
+  pinContainer: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: 40,
+    paddingTop: 60,
   },
   backLink: {
     position: 'absolute',
