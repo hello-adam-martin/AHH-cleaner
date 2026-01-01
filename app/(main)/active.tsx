@@ -17,7 +17,6 @@ import * as Haptics from 'expo-haptics';
 export default function ActiveCleaningScreen() {
   const authenticatedCleaner = useAuthStore((state) => state.authenticatedCleaner);
   const properties = usePropertiesStore((state) => state.properties);
-  const refreshFromAirtable = usePropertiesStore((state) => state.refreshFromAirtable);
   const activeSessions = useSessionStore((state) => state.activeSessions);
   const stopSession = useSessionStore((state) => state.stopSession);
   const restartSession = useSessionStore((state) => state.restartSession);
@@ -138,8 +137,9 @@ export default function ActiveCleaningScreen() {
         // Add to history (this will sync to Airtable)
         await addCompletedSession(completedSession, property, authenticatedCleaner);
 
-        // Refresh properties from Airtable to get updated totals
-        await refreshFromAirtable();
+        // Note: No need to refresh properties here - the UI calculates status
+        // from session stores, not from property data. Background refresh
+        // happens automatically on next app launch.
 
         // Haptic feedback
         try {
