@@ -243,11 +243,10 @@ const styles = StyleSheet.create({
   pinContainer: {
     flex: 1,
     alignItems: 'center',
-    paddingTop: 20,
   },
   backLink: {
     alignSelf: 'flex-start',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   backLinkText: {
     fontSize: 16,
@@ -256,24 +255,24 @@ const styles = StyleSheet.create({
   },
   selectedCleanerInfo: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 16,
   },
   selectedCleanerName: {
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: 'Nunito_700Bold',
     color: theme.colors.text,
-    marginTop: 12,
+    marginTop: 8,
   },
   pinPrompt: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: 'Nunito_600SemiBold',
     color: '#666',
-    marginBottom: 20,
+    marginBottom: 12,
   },
   pinDots: {
     flexDirection: 'row',
     gap: 16,
-    marginBottom: 40,
+    marginBottom: 16,
   },
   pinDot: {
     width: 16,
@@ -290,8 +289,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 20,
-    height: 40,
+    marginBottom: 12,
+    height: 24,
   },
   loadingText: {
     fontSize: 14,
@@ -302,12 +301,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Nunito_600SemiBold',
     color: '#F44336',
-    marginBottom: 20,
-    height: 40,
+    marginBottom: 12,
+    height: 24,
   },
   spacer: {
-    height: 40,
-    marginBottom: 20,
+    height: 24,
+    marginBottom: 12,
   },
   keypad: {
     flexDirection: 'row',
