@@ -1,8 +1,8 @@
 import { Tabs, Redirect } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
+import { Ionicons } from '@expo/vector-icons';
+import { View, StyleSheet } from 'react-native';
 import { useAuthStore } from '@/stores/authStore';
 import { useSessionStore } from '@/stores/sessionStore';
-import { TabBarIcon } from '@/components/TabBarIcon';
 
 export default function MainLayout() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -41,8 +41,8 @@ export default function MainLayout() {
         name="properties"
         options={{
           title: 'Today',
-          tabBarIcon: ({ color }) => (
-            <SymbolView name="house.fill" size={24} tintColor={color} />
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home" size={size} color={color} />
           ),
         }}
       />
@@ -50,8 +50,11 @@ export default function MainLayout() {
         name="active"
         options={{
           title: 'Cleaning',
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon name="timer" color={color} showPulse={hasRunningTimer} />
+          tabBarIcon: ({ color, size }) => (
+            <View>
+              <Ionicons name="timer-outline" size={size} color={color} />
+              {hasRunningTimer && <View style={styles.pulseDot} />}
+            </View>
           ),
           tabBarBadge: cleanerSessionCount > 0 ? cleanerSessionCount : undefined,
         }}
@@ -60,8 +63,8 @@ export default function MainLayout() {
         name="history"
         options={{
           title: 'Done',
-          tabBarIcon: ({ color }) => (
-            <SymbolView name="checkmark.circle.fill" size={24} tintColor={color} />
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="checkmark-circle" size={size} color={color} />
           ),
         }}
       />
@@ -80,3 +83,15 @@ export default function MainLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  pulseDot: {
+    position: 'absolute',
+    top: 0,
+    right: -2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4CAF50',
+  },
+});
