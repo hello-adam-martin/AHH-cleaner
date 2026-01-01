@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { useCleanerStore } from '@/stores/cleanerStore';
@@ -82,8 +82,12 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Akaroa Holiday Homes</Text>
-        <Text style={styles.subtitle}>Cleaner App</Text>
+        {!selectedCleaner && (
+          <>
+            <Text style={styles.title}>Akaroa Holiday Homes</Text>
+            <Text style={styles.subtitle}>Cleaner App</Text>
+          </>
+        )}
 
         {!selectedCleaner && (
           <View style={styles.selectionContainer}>
@@ -105,11 +109,7 @@ export default function LoginScreen() {
         )}
 
         {selectedCleaner && (
-          <ScrollView
-            style={styles.pinScrollView}
-            contentContainerStyle={styles.pinContainer}
-            showsVerticalScrollIndicator={false}
-          >
+          <View style={styles.pinContainer}>
             <TouchableOpacity onPress={handleBack} style={styles.backLink}>
               <Text style={styles.backLinkText}>← Back</Text>
             </TouchableOpacity>
@@ -160,7 +160,7 @@ export default function LoginScreen() {
                   <Text style={styles.keypadButtonText}>{num}</Text>
                 </TouchableOpacity>
               ))}
-              <View style={styles.keypadButton} />
+              <View style={styles.keypadButtonEmpty} />
               <TouchableOpacity
                 style={styles.keypadButton}
                 onPress={() => handlePinPress('0')}
@@ -178,7 +178,7 @@ export default function LoginScreen() {
                 <Text style={styles.keypadButtonText}>⌫</Text>
               </TouchableOpacity>
             </View>
-          </ScrollView>
+          </View>
         )}
       </View>
     </SafeAreaView>
@@ -240,20 +240,14 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     marginLeft: 16,
   },
-  pinScrollView: {
-    flex: 1,
-  },
   pinContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
+    flex: 1,
     alignItems: 'center',
-    paddingVertical: 40,
-    paddingTop: 60,
+    paddingTop: 20,
   },
   backLink: {
-    position: 'absolute',
-    top: 20,
-    left: 0,
+    alignSelf: 'flex-start',
+    marginBottom: 20,
   },
   backLinkText: {
     fontSize: 16,
@@ -336,6 +330,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  keypadButtonEmpty: {
+    width: 72,
+    height: 72,
   },
   keypadButtonText: {
     fontSize: 24,

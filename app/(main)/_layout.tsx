@@ -35,6 +35,11 @@ export default function MainLayout() {
           fontSize: 12,
           fontFamily: 'Nunito_600SemiBold',
         },
+        tabBarStyle: {
+          paddingBottom: 8,
+          paddingTop: 8,
+          height: 60,
+        },
       }}
     >
       <Tabs.Screen
