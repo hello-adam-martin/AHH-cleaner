@@ -31,15 +31,9 @@ export default function MainLayout() {
         headerShown: false,
         tabBarActiveTintColor: '#000000',
         tabBarInactiveTintColor: '#999999',
-        tabBarStyle: {
-          paddingTop: 8,
-          paddingBottom: 8,
-          height: 60,
-        },
         tabBarLabelStyle: {
           fontSize: 12,
           fontFamily: 'Nunito_600SemiBold',
-          marginTop: 4,
         },
       }}
     >
