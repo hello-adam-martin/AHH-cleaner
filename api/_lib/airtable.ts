@@ -46,6 +46,16 @@ export function getTodayDateString(): string {
   return nzDate;
 }
 
+export function getDateDaysAgo(days: number): string {
+  // Get date N days ago in NZ timezone
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  const nzDate = date.toLocaleDateString('en-CA', {
+    timeZone: 'Pacific/Auckland'
+  });
+  return nzDate;
+}
+
 // Consumable prices (duplicated from client for server-side calculation)
 export const consumablePrices: { [key: string]: number } = {
   king_sheets: 3.00,

@@ -1,20 +1,23 @@
 import { create } from 'zustand';
 import type { Property } from '@/types';
 import { storageHelpers, storageKeys } from '@/services/storage';
-import { fetchTodaysCheckouts } from '@/services/backendApiService';
+import { fetchTodaysCheckouts, fetchMissedCleanings } from '@/services/backendApiService';
 
 interface PropertiesState {
   properties: Property[];
+  missedCleanings: Property[];
   setProperties: (properties: Property[]) => void;
   addProperty: (property: Property) => void;
   updateProperty: (id: string, updates: Partial<Property>) => void;
   refreshFromAirtable: () => Promise<void>;
+  refreshMissedCleanings: () => Promise<void>;
   initializeFromStorage: () => void;
   reset: () => void;
 }
 
 export const usePropertiesStore = create<PropertiesState>((set) => ({
   properties: [],
+  missedCleanings: [],
 
   setProperties: (properties) => {
     storageHelpers.setObject(storageKeys.PROPERTIES, properties);
@@ -50,6 +53,18 @@ export const usePropertiesStore = create<PropertiesState>((set) => ({
     }
   },
 
+  refreshMissedCleanings: async () => {
+    console.log('Fetching missed cleanings...');
+    const missed = await fetchMissedCleanings();
+
+    if (missed) {
+      set({ missedCleanings: missed });
+      console.log(`✓ Fetched ${missed.length} missed cleanings`);
+    } else {
+      console.log('No missed cleanings returned');
+    }
+  },
+
   initializeFromStorage: () => {
     const properties =
       storageHelpers.getObject<Property[]>(storageKeys.PROPERTIES) || [];
@@ -57,6 +72,6 @@ export const usePropertiesStore = create<PropertiesState>((set) => ({
   },
 
   reset: () => {
-    set({ properties: [] });
+    set({ properties: [], missedCleanings: [] });
   },
 }));

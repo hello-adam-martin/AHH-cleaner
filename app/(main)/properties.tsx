@@ -25,7 +25,9 @@ export default function PropertiesScreen() {
   const authenticatedCleaner = useAuthStore((state) => state.authenticatedCleaner);
   const logout = useAuthStore((state) => state.logout);
   const properties = usePropertiesStore((state) => state.properties);
+  const missedCleanings = usePropertiesStore((state) => state.missedCleanings);
   const setProperties = usePropertiesStore((state) => state.setProperties);
+  const refreshMissedCleanings = usePropertiesStore((state) => state.refreshMissedCleanings);
   const cleaners = useCleanerStore((state) => state.cleaners);
   const activeSessions = useSessionStore((state) => state.activeSessions);
   const startSession = useSessionStore((state) => state.startSession);
@@ -118,6 +120,8 @@ export default function PropertiesScreen() {
       } else {
         console.log('No properties returned from Airtable');
       }
+      // Also refresh missed cleanings
+      await refreshMissedCleanings();
     } catch (error) {
       console.error('Error refreshing properties:', error);
     } finally {
@@ -383,6 +387,34 @@ export default function PropertiesScreen() {
             colors={[theme.colors.text]}
           />
         }
+        ListHeaderComponent={
+          missedCleanings.length > 0 ? (
+            <View style={styles.missedSection}>
+              <View style={styles.missedHeader}>
+                <Text style={styles.missedTitle}>Missed Cleanings ({missedCleanings.length})</Text>
+                <Text style={styles.missedSubtext}>
+                  Checkouts from the past week that weren't cleaned
+                </Text>
+              </View>
+              {missedCleanings.map((property) => (
+                <PropertyCard
+                  key={property.id}
+                  property={{
+                    ...property,
+                    status: PropertyStatus.PENDING,
+                    activeCleaners: [],
+                    activeSessions: [],
+                  }}
+                  onQuickStart={handleQuickStart}
+                  canQuickStart={!hasActiveTimer}
+                />
+              ))}
+              <View style={styles.missedDivider}>
+                <Text style={styles.missedDividerText}>Today's Properties</Text>
+              </View>
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
@@ -560,5 +592,39 @@ const styles = StyleSheet.create({
   },
   filterChipTextActive: {
     color: '#FFFFFF',
+  },
+  missedSection: {
+    marginBottom: 16,
+  },
+  missedHeader: {
+    backgroundColor: '#FFF3E0',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9800',
+  },
+  missedTitle: {
+    fontSize: 18,
+    fontFamily: 'Nunito_700Bold',
+    color: '#E65100',
+    marginBottom: 4,
+  },
+  missedSubtext: {
+    fontSize: 14,
+    fontFamily: 'Nunito_400Regular',
+    color: '#F57C00',
+  },
+  missedDivider: {
+    marginTop: 16,
+    marginBottom: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  missedDividerText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_700Bold',
+    color: theme.colors.text,
   },
 });

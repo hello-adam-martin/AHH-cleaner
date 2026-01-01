@@ -59,6 +59,19 @@ export async function fetchTodaysCheckouts(): Promise<Property[] | null> {
 }
 
 /**
+ * Fetch missed cleanings from the past 7 days
+ * @returns Array of Property objects that weren't cleaned or null if fetch fails
+ */
+export async function fetchMissedCleanings(): Promise<Property[] | null> {
+  console.log('Fetching missed cleanings from backend API...');
+  const properties = await fetchFromApi<Property[]>('/missed-cleanings');
+  if (properties) {
+    console.log(`Fetched ${properties.length} missed cleanings from API`);
+  }
+  return properties;
+}
+
+/**
  * Update booking record with completed cleaning session data
  * @param session The completed session to sync
  * @returns Success status and optional error message

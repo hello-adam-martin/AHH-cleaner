@@ -59,7 +59,7 @@ export const initializeApp = async () => {
   }
 
   // Handle properties: fetch from Airtable if configured and it's a new day
-  const { properties, setProperties } = usePropertiesStore.getState();
+  const { properties, setProperties, refreshMissedCleanings } = usePropertiesStore.getState();
 
   if (isAirtableConfigured() && shouldFetchFromAirtable()) {
     console.log('Fetching today\'s properties from Airtable...');
@@ -74,6 +74,10 @@ export const initializeApp = async () => {
       // Fetch failed or no properties for today - keep cached data
       console.log(`Using ${properties.length} cached properties (Airtable fetch failed or returned no data)`);
     }
+
+    // Also fetch missed cleanings
+    console.log('Fetching missed cleanings...');
+    await refreshMissedCleanings();
   } else {
     // Using cached properties from previous session
     console.log(`Using ${properties.length} cached properties`);
