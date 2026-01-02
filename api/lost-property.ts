@@ -1,7 +1,33 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { put } from '@vercel/blob';
 import { getAirtableBase } from './_lib/airtable';
 
 const LOST_PROPERTY_TABLE = 'Lost Property';
+
+/**
+ * Upload a base64 image to Vercel Blob and return the URL
+ */
+async function uploadPhotoToBlob(base64Data: string): Promise<string> {
+  // Extract the base64 content (remove data:image/jpeg;base64, prefix)
+  const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
+  if (!matches) {
+    throw new Error('Invalid base64 image format');
+  }
+
+  const imageType = matches[1];
+  const base64Content = matches[2];
+  const buffer = Buffer.from(base64Content, 'base64');
+
+  // Generate unique filename
+  const filename = `lost-property/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${imageType}`;
+
+  const blob = await put(filename, buffer, {
+    access: 'public',
+    contentType: `image/${imageType}`,
+  });
+
+  return blob.url;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set CORS headers
@@ -34,11 +60,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log(`Creating lost property record for booking ${bookingId}...`);
 
+    // Upload photo to Vercel Blob if provided
+    let photoUrl: string | undefined;
+    if (photoBase64) {
+      console.log('  -> Uploading photo to Vercel Blob...');
+      photoUrl = await uploadPhotoToBlob(photoBase64);
+      console.log(`  -> Photo uploaded: ${photoUrl}`);
+    }
+
     // Create the record
     await base(LOST_PROPERTY_TABLE).create({
       'booking': [bookingId],
       'description': description,
-      'photo': photoBase64 ? [{ url: photoBase64 }] : undefined,
+      'photo': photoUrl ? [{ url: photoUrl }] : undefined,
       'status': 'Reported',
     });
 
