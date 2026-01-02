@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { usePropertiesStore } from '@/stores/propertiesStore';
 import { useLostPropertyStore } from '@/stores/lostPropertyStore';
 import { theme } from '@/constants/theme';
@@ -29,6 +29,19 @@ export default function ReportLostPropertyScreen() {
   const [success, setSuccess] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset form when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      setDescription('');
+      setPhotoBase64(null);
+      setError(null);
+      setSuccess(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }, [])
+  );
 
   const property = properties.find((p) => p.id === propertyId);
 
