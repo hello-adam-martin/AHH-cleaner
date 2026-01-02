@@ -122,21 +122,17 @@ export function isAirtableConfigured(): boolean {
 export async function syncLostProperty(
   item: LostPropertyItem,
   photoBase64?: string
-): Promise<{ success: boolean; error?: string; photoUrl?: string }> {
-  console.log(`Syncing lost property to backend API for property ${item.propertyId}...`);
+): Promise<{ success: boolean; error?: string }> {
+  console.log(`Syncing lost property to backend API for booking ${item.bookingId}...`);
 
-  const result = await fetchFromApi<{ success: boolean; error?: string; photoUrl?: string }>(
+  const result = await fetchFromApi<{ success: boolean; error?: string }>(
     '/lost-property',
     {
       method: 'POST',
       body: JSON.stringify({
-        propertyId: item.propertyId,
-        propertyName: item.propertyName,
-        cleanerId: item.cleanerId,
-        cleanerName: item.cleanerName,
+        bookingId: item.bookingId,
         description: item.description,
         photoBase64,
-        reportedAt: item.reportedAt,
       }),
     }
   );

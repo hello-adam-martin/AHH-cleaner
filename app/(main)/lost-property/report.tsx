@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useAuthStore } from '@/stores/authStore';
 import { usePropertiesStore } from '@/stores/propertiesStore';
 import { useLostPropertyStore } from '@/stores/lostPropertyStore';
 import { theme } from '@/constants/theme';
@@ -20,7 +19,6 @@ import * as Haptics from 'expo-haptics';
 
 export default function ReportLostPropertyScreen() {
   const { propertyId } = useLocalSearchParams<{ propertyId: string }>();
-  const authenticatedCleaner = useAuthStore((state) => state.authenticatedCleaner);
   const properties = usePropertiesStore((state) => state.properties);
   const addLostProperty = useLostPropertyStore((state) => state.addLostProperty);
   const isSyncing = useLostPropertyStore((state) => state.isSyncing);
@@ -34,7 +32,7 @@ export default function ReportLostPropertyScreen() {
 
   const property = properties.find((p) => p.id === propertyId);
 
-  if (!property || !authenticatedCleaner) {
+  if (!property) {
     return null;
   }
 
@@ -82,10 +80,7 @@ export default function ReportLostPropertyScreen() {
 
     const result = await addLostProperty(
       {
-        propertyId: property.id,
-        propertyName: property.name,
-        cleanerId: authenticatedCleaner.id,
-        cleanerName: authenticatedCleaner.name,
+        bookingId: property.id,
         description: description.trim(),
       },
       photoBase64 || undefined

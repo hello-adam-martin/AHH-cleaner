@@ -5,7 +5,7 @@ import { syncLostProperty, isAirtableConfigured } from '@/services/backendApiSer
 interface LostPropertyState {
   isSyncing: boolean;
   addLostProperty: (
-    item: Omit<LostPropertyItem, 'id' | 'status' | 'reportedAt'>,
+    item: Omit<LostPropertyItem, 'id' | 'reportedAt'>,
     photoBase64?: string
   ) => Promise<{ success: boolean; error?: string }>;
 }
@@ -21,7 +21,6 @@ export const useLostPropertyStore = create<LostPropertyState>((set) => ({
     const newItem: LostPropertyItem = {
       ...itemData,
       id: `lp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      status: 'reported',
       reportedAt: Date.now(),
     };
 

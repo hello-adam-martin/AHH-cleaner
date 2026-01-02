@@ -78,12 +78,7 @@ export interface CompletedSession extends CleaningSession {
 
 export interface LostPropertyItem {
   id: string;
-  propertyId: string;
-  propertyName: string;
-  cleanerId: string;
-  cleanerName: string;
+  bookingId: string; // Links to the booking record in Airtable
   description: string;
-  photoUrl?: string; // Airtable attachment URL
-  status: 'reported';
   reportedAt: number;
 }
