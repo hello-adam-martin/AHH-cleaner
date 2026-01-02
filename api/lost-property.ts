@@ -45,9 +45,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log(`  -> Successfully created lost property record`);
 
     res.status(200).json({ success: true });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error creating lost property record:', errorMessage);
+  } catch (error: any) {
+    console.error('Error creating lost property record:', error);
+    const errorMessage = error?.message || error?.error?.message || JSON.stringify(error) || 'Unknown error';
     res.status(500).json({
       success: false,
       error: errorMessage,
