@@ -35,11 +35,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log(`Creating lost property record for booking ${bookingId}...`);
 
     // Create the record
-    // Note: photoBase64 disabled for now - Airtable has request size limits
-    // TODO: Upload to Cloudinary or similar first, then pass URL to Airtable
     await base(LOST_PROPERTY_TABLE).create({
       'booking': [bookingId],
       'description': description,
+      'photo': photoBase64 ? [{ url: photoBase64 }] : undefined,
       'status': 'Reported',
     });
 
