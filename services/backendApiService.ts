@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import type { Property, Cleaner, CompletedSession } from '@/types';
+import type { Property, Cleaner, CompletedSession, LostPropertyItem } from '@/types';
 
 // Backend API URL (set via environment variable)
 // In development, this might be http://localhost:3000/api
@@ -111,4 +111,86 @@ export function isAirtableConfigured(): boolean {
   }
   // On native, we need an explicit API URL
   return Boolean(process.env.EXPO_PUBLIC_API_URL);
+}
+
+/**
+ * Sync a new lost property item to Airtable
+ * @param item The lost property item to sync
+ * @param photoBase64 Optional base64 encoded photo
+ * @returns Success status, optional error message, and photo URL if uploaded
+ */
+export async function syncLostProperty(
+  item: LostPropertyItem,
+  photoBase64?: string
+): Promise<{ success: boolean; error?: string; photoUrl?: string }> {
+  console.log(`Syncing lost property to backend API for property ${item.propertyId}...`);
+
+  const result = await fetchFromApi<{ success: boolean; error?: string; photoUrl?: string }>(
+    '/lost-property',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        propertyId: item.propertyId,
+        propertyName: item.propertyName,
+        cleanerId: item.cleanerId,
+        cleanerName: item.cleanerName,
+        description: item.description,
+        photoBase64,
+        reportedAt: item.reportedAt,
+      }),
+    }
+  );
+
+  if (result) {
+    if (result.success) {
+      console.log('  -> Successfully synced lost property to backend');
+    } else {
+      console.error('  -> Failed to sync lost property:', result.error);
+    }
+    return result;
+  }
+
+  return { success: false, error: 'Failed to connect to backend API' };
+}
+
+/**
+ * Mark a lost property item as resolved in Airtable
+ * @param id The lost property item ID
+ * @returns Success status and optional error message
+ */
+export async function resolveLostPropertyApi(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  console.log(`Resolving lost property ${id}...`);
+
+  const result = await fetchFromApi<{ success: boolean; error?: string }>(
+    `/lost-property/${id}/resolve`,
+    {
+      method: 'POST',
+    }
+  );
+
+  if (result) {
+    if (result.success) {
+      console.log('  -> Successfully resolved lost property');
+    } else {
+      console.error('  -> Failed to resolve lost property:', result.error);
+    }
+    return result;
+  }
+
+  return { success: false, error: 'Failed to connect to backend API' };
+}
+
+/**
+ * Fetch all lost property items from Airtable
+ * @returns Array of lost property items or null if fetch fails
+ */
+export async function fetchLostProperties(): Promise<LostPropertyItem[] | null> {
+  console.log('Fetching lost properties from backend API...');
+  const items = await fetchFromApi<LostPropertyItem[]>('/lost-property');
+  if (items) {
+    console.log(`Fetched ${items.length} lost property items from API`);
+  }
+  return items;
 }

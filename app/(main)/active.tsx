@@ -476,12 +476,20 @@ export default function ActiveCleaningScreen() {
               </TouchableOpacity>
             )}
           </View>
-          <TouchableOpacity
-            style={styles.completeButton}
-            onPress={handleComplete}
-          >
-            <Text style={styles.buttonText}>Complete Cleaning</Text>
-          </TouchableOpacity>
+          <View style={styles.controlRow}>
+            <TouchableOpacity
+              style={styles.lostPropertyButton}
+              onPress={() => router.push({ pathname: '/(main)/lost-property/report', params: { propertyId: property.id } })}
+            >
+              <Text style={styles.lostPropertyButtonText}>Report Lost Property</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.completeButton}
+              onPress={handleComplete}
+            >
+              <Text style={styles.buttonText}>Complete Cleaning</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -795,10 +803,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   completeButton: {
+    flex: 1,
     backgroundColor: '#2196F3',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
+  },
+  lostPropertyButton: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#666',
+    alignItems: 'center',
+  },
+  lostPropertyButtonText: {
+    fontSize: 14,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#666',
   },
   buttonText: {
     fontSize: 18,

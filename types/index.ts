@@ -75,3 +75,16 @@ export interface CompletedSession extends CleaningSession {
   syncedToAirtable?: boolean; // Whether this session has been synced to Airtable
   syncError?: string; // Error message if sync failed
 }
+
+export interface LostPropertyItem {
+  id: string;
+  propertyId: string;
+  propertyName: string;
+  cleanerId: string;
+  cleanerName: string;
+  description: string;
+  photoUrl?: string; // Airtable attachment URL
+  status: 'reported' | 'resolved';
+  reportedAt: number;
+  resolvedAt?: number;
+}
