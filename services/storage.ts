@@ -122,7 +122,6 @@ export const storageKeys = {
   ACTIVE_SESSIONS: 'active_sessions',
   COMPLETED_SESSIONS: 'completed_sessions',
   LAST_FETCH_DATE: 'last_fetch_date',
-  LOST_PROPERTIES: 'lost_properties',
 } as const;
 
 // Helper functions for type-safe storage

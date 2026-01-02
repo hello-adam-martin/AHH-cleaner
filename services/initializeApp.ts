@@ -3,7 +3,6 @@ import { usePropertiesStore } from '@/stores/propertiesStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import { useAuthStore } from '@/stores/authStore';
-import { useLostPropertyStore } from '@/stores/lostPropertyStore';
 import { fetchTodaysCheckouts, fetchCleaners, isAirtableConfigured } from './backendApiService';
 import { storageHelpers, storageKeys, waitForStorageReady } from './storage';
 
@@ -32,7 +31,6 @@ export const initializeApp = async () => {
   useSessionStore.getState().initializeFromStorage();
   useHistoryStore.getState().initializeFromStorage();
   useAuthStore.getState().initializeFromStorage();
-  useLostPropertyStore.getState().initializeFromStorage();
 
   // Handle cleaners: fetch from Airtable if configured, otherwise use seed data
   const { cleaners, setCleaners } = useCleanerStore.getState();
@@ -98,10 +96,5 @@ export const initializeApp = async () => {
         }
       });
     }
-
-    // Fetch lost properties in background
-    useLostPropertyStore.getState().fetchFromServer().then(() => {
-      console.log('✓ Lost properties synced from server');
-    });
   }
 };

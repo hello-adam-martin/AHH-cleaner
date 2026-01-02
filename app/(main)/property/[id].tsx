@@ -4,7 +4,6 @@ import { useAuthStore } from '@/stores/authStore';
 import { useCleanerStore } from '@/stores/cleanerStore';
 import { usePropertiesStore } from '@/stores/propertiesStore';
 import { useSessionStore } from '@/stores/sessionStore';
-import { useLostPropertyStore } from '@/stores/lostPropertyStore';
 import { CleanerBadge } from '@/components/CleanerBadge';
 import { getTimeUntil, formatTime, formatCheckinDate, formatHoursAndMinutes } from '@/utils/time';
 import { theme } from '@/constants/theme';
@@ -18,13 +17,7 @@ export default function PropertyDetailsScreen() {
   const activeSessions = useSessionStore((state) => state.activeSessions);
   const startSession = useSessionStore((state) => state.startSession);
 
-  const getLostPropertiesForProperty = useLostPropertyStore(
-    (state) => state.getLostPropertiesForProperty
-  );
-
   const property = properties.find((p) => p.id === id);
-  const lostProperties = id ? getLostPropertiesForProperty(id) : [];
-  const reportedLostProperties = lostProperties.filter((p) => p.status === 'reported');
 
   if (!property || !authenticatedCleaner) {
     return null;
@@ -132,30 +125,13 @@ export default function PropertyDetailsScreen() {
         )}
 
         <View style={styles.section}>
-          <View style={styles.lostPropertyHeader}>
-            <Text style={styles.sectionTitle}>Lost Property</Text>
-            {reportedLostProperties.length > 0 && (
-              <View style={styles.lostPropertyBadge}>
-                <Text style={styles.lostPropertyBadgeText}>{reportedLostProperties.length}</Text>
-              </View>
-            )}
-          </View>
-          <View style={styles.lostPropertyButtons}>
-            <TouchableOpacity
-              style={styles.lostPropertyViewButton}
-              onPress={() => router.push({ pathname: '/(main)/lost-property', params: { propertyId: id } })}
-            >
-              <Text style={styles.lostPropertyViewButtonText}>
-                View Items ({lostProperties.length})
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.lostPropertyReportButton}
-              onPress={() => router.push({ pathname: '/(main)/lost-property/report', params: { propertyId: id } })}
-            >
-              <Text style={styles.lostPropertyReportButtonText}>+ Report</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.sectionTitle}>Lost Property</Text>
+          <TouchableOpacity
+            style={styles.lostPropertyReportButton}
+            onPress={() => router.push({ pathname: '/(main)/lost-property/report', params: { propertyId: id } })}
+          >
+            <Text style={styles.lostPropertyReportButtonText}>Report Item Left Behind</Text>
+          </TouchableOpacity>
         </View>
 
         {hasActiveTimerElsewhere && !isCurrentlyCleaningThis && (
@@ -338,41 +314,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   cleanerName: {
-    fontSize: 14,
-    fontFamily: 'Nunito_600SemiBold',
-    color: theme.colors.text,
-  },
-  lostPropertyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  lostPropertyBadge: {
-    backgroundColor: theme.colors.warning,
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    minWidth: 20,
-    alignItems: 'center',
-  },
-  lostPropertyBadgeText: {
-    fontSize: 12,
-    fontFamily: 'Nunito_700Bold',
-    color: '#FFFFFF',
-  },
-  lostPropertyButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  lostPropertyViewButton: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  lostPropertyViewButtonText: {
     fontSize: 14,
     fontFamily: 'Nunito_600SemiBold',
     color: theme.colors.text,

@@ -84,7 +84,6 @@ export interface LostPropertyItem {
   cleanerName: string;
   description: string;
   photoUrl?: string; // Airtable attachment URL
-  status: 'reported' | 'resolved';
+  status: 'reported';
   reportedAt: number;
-  resolvedAt?: number;
 }
