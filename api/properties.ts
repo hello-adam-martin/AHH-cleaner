@@ -154,12 +154,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Fetch blocked dates ending today
     console.log(`Fetching blocked dates ending today (${todayDate})...`);
-    const blockedRecords = await base('Blocked Dates')
+
+    // First, let's fetch ALL blocked dates to debug
+    const allBlockedRecords = await base('Blocked Dates')
       .select({
-        filterByFormula: `IS_SAME({To}, '${todayDate}', 'day')`,
         fields: ['Property', 'From', 'To', 'Reason', 'Description', CLEANING_DURATION_FIELD, CONSUMABLES_COST_FIELD],
       })
       .all();
+
+    console.log(`Total blocked dates in table: ${allBlockedRecords.length}`);
+    allBlockedRecords.forEach((r: any) => {
+      console.log(`  -> To: ${r.fields['To']}, Property: ${r.fields['Property']}`);
+    });
+
+    // Filter for today's date
+    const blockedRecords = allBlockedRecords.filter((r: any) => {
+      const toDate = r.fields['To'] as string;
+      if (!toDate) return false;
+      // Airtable returns dates in YYYY-MM-DD format
+      const matches = toDate === todayDate || toDate.startsWith(todayDate);
+      console.log(`  Comparing ${toDate} with ${todayDate}: ${matches}`);
+      return matches;
+    });
 
     console.log(`Found ${blockedRecords.length} blocked dates ending today`);
 
