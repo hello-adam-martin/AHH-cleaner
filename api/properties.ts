@@ -152,30 +152,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Fetch blocked dates ending today
+    // Fetch blocked dates ending today (uses same field names as Bookings)
     console.log(`Fetching blocked dates ending today (${todayDate})...`);
-
-    // First, let's fetch ALL blocked dates to debug
-    const allBlockedRecords = await base('Blocked Dates')
+    const blockedRecords = await base('Blocked Dates')
       .select({
-        fields: ['Property', 'From', 'To', 'Reason', 'Description', CLEANING_DURATION_FIELD, CONSUMABLES_COST_FIELD],
+        filterByFormula: `IS_SAME({${CHECKOUT_DATE_FIELD}}, '${todayDate}', 'day')`,
+        fields: [PROPERTY_LINK_FIELD, CHECKIN_DATE_FIELD, CHECKOUT_DATE_FIELD, 'Reason', 'Description', CLEANING_DURATION_FIELD, CONSUMABLES_COST_FIELD],
       })
       .all();
-
-    console.log(`Total blocked dates in table: ${allBlockedRecords.length}`);
-    allBlockedRecords.forEach((r: any) => {
-      console.log(`  -> To: ${r.fields['To']}, Property: ${r.fields['Property']}`);
-    });
-
-    // Filter for today's date
-    const blockedRecords = allBlockedRecords.filter((r: any) => {
-      const toDate = r.fields['To'] as string;
-      if (!toDate) return false;
-      // Airtable returns dates in YYYY-MM-DD format
-      const matches = toDate === todayDate || toDate.startsWith(todayDate);
-      console.log(`  Comparing ${toDate} with ${todayDate}: ${matches}`);
-      return matches;
-    });
 
     console.log(`Found ${blockedRecords.length} blocked dates ending today`);
 
@@ -206,8 +190,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         id: record.id,
         name: String(propertyName),
         address: String(propertyAddress),
-        checkoutDate: fields['To'] as string,
-        checkinDate: fields['From'] as string,
+        checkoutDate: fields[CHECKOUT_DATE_FIELD] as string,
+        checkinDate: fields[CHECKIN_DATE_FIELD] as string,
         notes: fields['Description'] as string,
         cleaningTime,
         consumablesCost,
