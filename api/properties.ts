@@ -152,12 +152,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Fetch blocked dates ending today (uses same field names as Bookings)
+    // Fetch blocked dates ending today
     console.log(`Fetching blocked dates ending today (${todayDate})...`);
+
+    // Debug: fetch all to see what's in the table
+    try {
+      const allBlocked = await base('Blocked Dates').select({ maxRecords: 10 }).all();
+      console.log(`DEBUG: Total blocked dates: ${allBlocked.length}`);
+      allBlocked.forEach((r: any) => {
+        console.log(`DEBUG: Record fields:`, JSON.stringify(r.fields));
+      });
+    } catch (e) {
+      console.log(`DEBUG: Error fetching all blocked:`, e);
+    }
+
     const blockedRecords = await base('Blocked Dates')
       .select({
-        filterByFormula: `IS_SAME({${CHECKOUT_DATE_FIELD}}, '${todayDate}', 'day')`,
-        fields: [PROPERTY_LINK_FIELD, CHECKIN_DATE_FIELD, CHECKOUT_DATE_FIELD, 'Reason', 'Description', CLEANING_DURATION_FIELD, CONSUMABLES_COST_FIELD],
+        filterByFormula: `IS_SAME({To}, '${todayDate}', 'day')`,
+        fields: ['Property', 'From', 'To', 'Reason', 'Description', CLEANING_DURATION_FIELD, CONSUMABLES_COST_FIELD],
       })
       .all();
 
@@ -190,8 +202,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         id: record.id,
         name: String(propertyName),
         address: String(propertyAddress),
-        checkoutDate: fields[CHECKOUT_DATE_FIELD] as string,
-        checkinDate: fields[CHECKIN_DATE_FIELD] as string,
+        checkoutDate: fields['To'] as string,
+        checkinDate: fields['From'] as string,
         notes: fields['Description'] as string,
         cleaningTime,
         consumablesCost,
