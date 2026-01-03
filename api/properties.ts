@@ -154,18 +154,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Fetch blocked dates ending today
     console.log(`Fetching blocked dates ending today (${todayDate})...`);
-
-    // Debug: fetch all to see what's in the table
-    try {
-      const allBlocked = await base('Blocked Dates').select({ maxRecords: 10 }).all();
-      console.log(`DEBUG: Total blocked dates: ${allBlocked.length}`);
-      allBlocked.forEach((r: any) => {
-        console.log(`DEBUG: Record fields:`, JSON.stringify(r.fields));
-      });
-    } catch (e) {
-      console.log(`DEBUG: Error fetching all blocked:`, e);
-    }
-
     const blockedRecords = await base('Blocked Dates')
       .select({
         filterByFormula: `IS_SAME({To}, '${todayDate}', 'day')`,
