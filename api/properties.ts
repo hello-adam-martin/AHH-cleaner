@@ -152,7 +152,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    console.log(`Returning ${properties.length} properties`);
+    // Fetch blocked dates ending today
+    console.log(`Fetching blocked dates ending today (${todayDate})...`);
+    const blockedRecords = await base('Blocked Dates')
+      .select({
+        filterByFormula: `IS_SAME({To}, '${todayDate}', 'day')`,
+        fields: ['Property', 'From', 'To', 'Reason', 'Description', CLEANING_DURATION_FIELD, CONSUMABLES_COST_FIELD],
+      })
+      .all();
+
+    console.log(`Found ${blockedRecords.length} blocked dates ending today`);
+
+    for (const record of blockedRecords) {
+      const fields = record.fields as any;
+
+      let propertyName = 'Unknown Property';
+      let propertyAddress = '';
+
+      // Fetch property details from linked property
+      if (Array.isArray(fields['Property']) && fields['Property'][0]) {
+        try {
+          const propertyRecordId = fields['Property'][0];
+          const propertyRecord = await base(PROPERTIES_TABLE).find(propertyRecordId);
+          propertyName = (propertyRecord.fields['Name'] as string) || propertyName;
+          propertyAddress = (propertyRecord.fields['Address'] as string) || propertyAddress;
+        } catch (error) {
+          console.warn('Could not fetch linked property details for blocked date:', error);
+        }
+      }
+
+      // Get cleaning time and consumables if already recorded
+      const cleaningTimeRaw = (fields[CLEANING_DURATION_FIELD] as number) || 0;
+      const cleaningTime = cleaningTimeRaw / 3600; // Convert seconds to hours
+      const consumablesCost = (fields[CONSUMABLES_COST_FIELD] as number) || 0;
+
+      properties.push({
+        id: record.id,
+        name: String(propertyName),
+        address: String(propertyAddress),
+        checkoutDate: fields['To'] as string,
+        checkinDate: fields['From'] as string,
+        notes: fields['Description'] as string,
+        cleaningTime,
+        consumablesCost,
+        isBlocked: true,
+        blockedReason: fields['Reason'] as string,
+      });
+    }
+
+    console.log(`Returning ${properties.length} properties (including blocked dates)`);
 
     res.status(200).json(properties);
   } catch (error) {

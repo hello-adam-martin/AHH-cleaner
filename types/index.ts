@@ -24,6 +24,8 @@ export interface Property {
   consumablesCost?: number; // Total consumables cost in dollars (from Airtable)
   guestCount?: number; // Number of guests staying (from Airtable)
   isOverdue?: boolean; // True if checkout date is before today (missed cleaning)
+  isBlocked?: boolean; // True if from Blocked Dates table
+  blockedReason?: string; // Reason field from Blocked Dates
 }
 
 export interface ConsumableItem {

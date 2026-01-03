@@ -66,7 +66,8 @@ export async function fetchTodaysCheckouts(): Promise<Property[] | null> {
 export async function updateBookingWithCleaningData(
   session: CompletedSession
 ): Promise<{ success: boolean; error?: string }> {
-  console.log(`Syncing session to backend API for property ${session.propertyId}...`);
+  const isBlocked = session.property?.isBlocked === true;
+  console.log(`Syncing session to backend API for ${isBlocked ? 'blocked date' : 'property'} ${session.propertyId}...`);
 
   const result = await fetchFromApi<{ success: boolean; error?: string }>('/sessions', {
     method: 'POST',
@@ -75,6 +76,7 @@ export async function updateBookingWithCleaningData(
       duration: session.duration,
       helperAccumulatedDuration: session.helperAccumulatedDuration || 0,
       consumables: session.consumables,
+      isBlocked,
     }),
   });
 

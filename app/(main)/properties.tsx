@@ -190,9 +190,13 @@ export default function PropertiesScreen() {
   // Enhance all properties with status info (isOverdue comes from API)
   const allPropertiesWithStatus: PropertyWithStatus[] = properties.map((p) => enhanceProperty(p));
 
+  // Split into regular and blocked properties
+  const regularProperties = allPropertiesWithStatus.filter((p) => !p.isBlocked);
+  const blockedProperties = allPropertiesWithStatus.filter((p) => p.isBlocked);
+
   // Sort properties: in-progress first, then overdue pending, then pending, then completed
   // Within each group, sort by checkout date (oldest first for overdue, next check-in for today)
-  const sortedProperties = [...allPropertiesWithStatus].sort((a, b) => {
+  const sortedProperties = [...regularProperties].sort((a, b) => {
     const statusOrder = {
       [PropertyStatus.IN_PROGRESS]: 0,
       [PropertyStatus.PENDING]: 1,
@@ -373,16 +377,7 @@ export default function PropertiesScreen() {
         </ScrollView>
       </View>
 
-      <FlatList
-        data={filteredProperties}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <PropertyCard
-            property={item}
-            onQuickStart={handleQuickStart}
-            canQuickStart={!hasActiveTimer}
-          />
-        )}
+      <ScrollView
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl
@@ -392,7 +387,18 @@ export default function PropertiesScreen() {
             colors={[theme.colors.text]}
           />
         }
-        ListEmptyComponent={
+      >
+        {/* Regular Properties */}
+        {filteredProperties.length > 0 ? (
+          filteredProperties.map((item) => (
+            <PropertyCard
+              key={item.id}
+              property={item}
+              onQuickStart={handleQuickStart}
+              canQuickStart={!hasActiveTimer}
+            />
+          ))
+        ) : (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
               {searchQuery || statusFilter !== 'all'
@@ -400,8 +406,25 @@ export default function PropertiesScreen() {
                 : 'No properties scheduled for today'}
             </Text>
           </View>
-        }
-      />
+        )}
+
+        {/* Blocked Dates Section */}
+        {blockedProperties.length > 0 && (
+          <View style={styles.blockedSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionHeaderText}>Blocked Dates Ending Today</Text>
+            </View>
+            {blockedProperties.map((item) => (
+              <PropertyCard
+                key={item.id}
+                property={item}
+                onQuickStart={handleQuickStart}
+                canQuickStart={!hasActiveTimer}
+              />
+            ))}
+          </View>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -569,5 +592,16 @@ const styles = StyleSheet.create({
   },
   filterChipTextActive: {
     color: '#FFFFFF',
+  },
+  blockedSection: {
+    marginTop: 24,
+  },
+  sectionHeader: {
+    marginBottom: 12,
+  },
+  sectionHeaderText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_700Bold',
+    color: '#666',
   },
 });

@@ -50,7 +50,7 @@ export function PropertyCard({ property, onQuickStart, canQuickStart = true }: P
 
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={[styles.card, property.isBlocked && styles.blockedCard]}
       onPress={handlePress}
       activeOpacity={0.7}
     >
@@ -60,7 +60,14 @@ export function PropertyCard({ property, onQuickStart, canQuickStart = true }: P
           <Text style={styles.address}>{property.address}</Text>
         </View>
         <View style={styles.headerRight}>
-          {property.isOverdue && (
+          {property.isBlocked && (
+            <View style={styles.blockedBadge}>
+              <Text style={styles.blockedBadgeText}>
+                {property.blockedReason || 'Blocked'}
+              </Text>
+            </View>
+          )}
+          {property.isOverdue && !property.isBlocked && (
             <View style={styles.overdueBadge}>
               <Text style={styles.overdueText}>Overdue</Text>
             </View>
@@ -104,11 +111,11 @@ export function PropertyCard({ property, onQuickStart, canQuickStart = true }: P
         </View>
       )}
 
-      {(property.guestCount !== undefined && property.guestCount > 0) ||
+      {((!property.isBlocked && property.guestCount !== undefined && property.guestCount > 0) ||
        (property.cleaningTime !== undefined && property.cleaningTime > 0) ||
-       (property.consumablesCost !== undefined && property.consumablesCost > 0) ? (
+       (property.consumablesCost !== undefined && property.consumablesCost > 0)) ? (
         <View style={styles.summarySection}>
-          {property.guestCount !== undefined && property.guestCount > 0 && (
+          {!property.isBlocked && property.guestCount !== undefined && property.guestCount > 0 && (
             <View style={styles.summaryItem}>
               <Text style={styles.summaryIcon}>👤</Text>
               <Text style={styles.summaryText}>
@@ -169,6 +176,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  blockedCard: {
+    backgroundColor: '#FFF8E1',
+    borderWidth: 1,
+    borderColor: '#FFE082',
+  },
+  blockedBadge: {
+    backgroundColor: '#FF8F00',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  blockedBadgeText: {
+    fontSize: 11,
+    fontFamily: 'Nunito_700Bold',
+    color: '#FFFFFF',
   },
   header: {
     flexDirection: 'row',

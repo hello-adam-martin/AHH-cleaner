@@ -36,12 +36,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ success: false, error: 'Invalid session data - missing propertyId or duration' });
     }
 
-    const bookingRecordId = session.propertyId;
-    console.log(`Updating booking ${bookingRecordId} with cleaning data...`);
+    const recordId = session.propertyId;
+    const isBlocked = session.isBlocked === true;
+    const tableName = isBlocked ? 'Blocked Dates' : BOOKINGS_TABLE;
 
-    // 1. Fetch current booking record
-    const bookingRecord = await base(BOOKINGS_TABLE).find(bookingRecordId);
-    const fields = bookingRecord.fields as any;
+    console.log(`Updating ${isBlocked ? 'blocked date' : 'booking'} ${recordId} with cleaning data...`);
+
+    // 1. Fetch current record
+    const record = await base(tableName).find(recordId);
+    const fields = record.fields as any;
 
     // 2. Get existing values (default to 0 if not set)
     const existingDurationSeconds = (fields[CLEANING_DURATION_FIELD] as number) || 0;
@@ -71,13 +74,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log(`  -> Adding ${totalSessionDurationHours.toFixed(2)}h to ${existingDurationHours.toFixed(2)}h = ${newDurationHours.toFixed(2)}h`);
     console.log(`  -> Adding $${sessionCost.toFixed(2)} to $${existingCost.toFixed(2)} = $${newCost.toFixed(2)}`);
 
-    // 5. Update the booking record
-    await base(BOOKINGS_TABLE).update(bookingRecordId, {
+    // 5. Update the record
+    await base(tableName).update(recordId, {
       [CLEANING_DURATION_FIELD]: newDurationSeconds,
       [CONSUMABLES_COST_FIELD]: newCost,
     });
 
-    console.log(`  -> Successfully updated booking ${bookingRecordId}`);
+    console.log(`  -> Successfully updated ${isBlocked ? 'blocked date' : 'booking'} ${recordId}`);
 
     res.status(200).json({ success: true });
   } catch (error) {
