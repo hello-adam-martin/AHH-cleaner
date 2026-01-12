@@ -11,6 +11,7 @@ interface SessionState {
   updateSessionTime: (sessionId: string, startTime: number, endTime: number) => void;
   updateConsumables: (sessionId: string, consumables: Partial<Consumables>) => void;
   completeSession: (sessionId: string, endTime: number) => CleaningSession | null;
+  discardSession: (sessionId: string) => void;
   startHelperTimer: (sessionId: string) => void;
   stopHelperTimer: (sessionId: string) => void;
   adjustCleanerTime: (sessionId: string, minutes: number) => void;
@@ -185,6 +186,13 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
     return completedSession;
   },
+
+  discardSession: (sessionId) =>
+    set((state) => {
+      const updated = state.activeSessions.filter((s) => s.id !== sessionId);
+      storageHelpers.setObject(storageKeys.ACTIVE_SESSIONS, updated);
+      return { activeSessions: updated };
+    }),
 
   startHelperTimer: (sessionId) =>
     set((state) => {

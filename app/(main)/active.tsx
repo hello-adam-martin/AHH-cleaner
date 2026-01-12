@@ -24,6 +24,7 @@ export default function ActiveCleaningScreen() {
   const startHelperTimer = useSessionStore((state) => state.startHelperTimer);
   const stopHelperTimer = useSessionStore((state) => state.stopHelperTimer);
   const completeSession = useSessionStore((state) => state.completeSession);
+  const discardSession = useSessionStore((state) => state.discardSession);
   const adjustCleanerTime = useSessionStore((state) => state.adjustCleanerTime);
   const adjustHelperTime = useSessionStore((state) => state.adjustHelperTime);
   const addCompletedSession = useHistoryStore((state) => state.addCompletedSession);
@@ -58,6 +59,9 @@ export default function ActiveCleaningScreen() {
 
   // Stop confirmation modal state
   const [showStopConfirmModal, setShowStopConfirmModal] = useState(false);
+
+  // Discard confirmation modal state
+  const [showDiscardModal, setShowDiscardModal] = useState(false);
 
   // Success celebration modal state
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -227,6 +231,19 @@ export default function ActiveCleaningScreen() {
         // Haptics not available on web
       }
       stopHelperTimer(session.id);
+    }
+  };
+
+  const handleDiscardSession = async () => {
+    if (session) {
+      try {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      } catch (e) {
+        // Haptics not available on web
+      }
+      discardSession(session.id);
+      setShowDiscardModal(false);
+      router.push('/(main)/properties');
     }
   };
 
@@ -490,6 +507,12 @@ export default function ActiveCleaningScreen() {
               <Text style={styles.buttonText}>Complete Cleaning</Text>
             </TouchableOpacity>
           </View>
+          <TouchableOpacity
+            style={styles.discardLink}
+            onPress={() => setShowDiscardModal(true)}
+          >
+            <Text style={styles.discardLinkText}>Discard Session</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -630,6 +653,45 @@ export default function ActiveCleaningScreen() {
             >
               <Text style={styles.successButtonText}>Back to Properties</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Discard Session Confirmation Modal */}
+      <Modal
+        visible={showDiscardModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDiscardModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Discard Session?</Text>
+            <Text style={styles.modalProperty}>{property?.name}</Text>
+
+            <View style={styles.modalSummary}>
+              <Text style={styles.discardWarningText}>
+                This will permanently delete this cleaning session. No time or consumables will be recorded.
+              </Text>
+              <Text style={styles.discardWarningSubtext}>
+                Use this only if the session was started by mistake or is no longer valid.
+              </Text>
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setShowDiscardModal(false)}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalConfirmBtn, styles.modalDiscardBtn]}
+                onPress={handleDiscardSession}
+              >
+                <Text style={styles.modalConfirmText}>Discard</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1225,5 +1287,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Nunito_700Bold',
     color: '#FFFFFF',
+  },
+  discardLink: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  discardLinkText: {
+    fontSize: 14,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#F44336',
+  },
+  discardWarningText: {
+    fontSize: 14,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#F44336',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  discardWarningSubtext: {
+    fontSize: 12,
+    fontFamily: 'Nunito_400Regular',
+    color: '#666',
+    textAlign: 'center',
+  },
+  modalDiscardBtn: {
+    backgroundColor: '#F44336',
   },
 });
