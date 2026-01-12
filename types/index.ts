@@ -84,3 +84,35 @@ export interface LostPropertyItem {
   description: string;
   reportedAt: number;
 }
+
+export type MaintenanceCategory =
+  | 'plumbing'
+  | 'electrical'
+  | 'appliance'
+  | 'hvac'
+  | 'structural'
+  | 'furniture'
+  | 'outdoor'
+  | 'other';
+
+export type MaintenancePriority = 'urgent' | 'normal';
+
+export interface MaintenanceIssue {
+  id: string;
+  bookingId: string; // Links to the booking record in Airtable
+  category: MaintenanceCategory;
+  priority: MaintenancePriority;
+  description: string;
+  reportedAt: number;
+}
+
+export const MAINTENANCE_CATEGORY_LABELS: Record<MaintenanceCategory, string> = {
+  plumbing: 'Plumbing',
+  electrical: 'Electrical',
+  appliance: 'Appliance',
+  hvac: 'Heating/Cooling',
+  structural: 'Structural/Building',
+  furniture: 'Furniture',
+  outdoor: 'Outdoor/Garden',
+  other: 'Other',
+};

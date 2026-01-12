@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import type { Property, Cleaner, CompletedSession, LostPropertyItem } from '@/types';
+import type { Property, Cleaner, CompletedSession, LostPropertyItem, MaintenanceIssue } from '@/types';
 
 // Backend API URL (set via environment variable)
 // In development, this might be http://localhost:3000/api
@@ -152,3 +152,40 @@ export async function syncLostProperty(
   return { success: false, error: 'Failed to connect to backend API' };
 }
 
+/**
+ * Sync a new maintenance issue to Airtable
+ * @param item The maintenance issue to sync
+ * @param photoBase64 Optional base64 encoded photo
+ * @returns Success status and optional error message
+ */
+export async function syncMaintenanceIssue(
+  item: MaintenanceIssue,
+  photoBase64?: string
+): Promise<{ success: boolean; error?: string }> {
+  console.log(`Syncing maintenance issue to backend API for booking ${item.bookingId}...`);
+
+  const result = await fetchFromApi<{ success: boolean; error?: string }>(
+    '/maintenance',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        bookingId: item.bookingId,
+        category: item.category,
+        priority: item.priority,
+        description: item.description,
+        photoBase64,
+      }),
+    }
+  );
+
+  if (result) {
+    if (result.success) {
+      console.log('  -> Successfully synced maintenance issue to backend');
+    } else {
+      console.error('  -> Failed to sync maintenance issue:', result.error);
+    }
+    return result;
+  }
+
+  return { success: false, error: 'Failed to connect to backend API' };
+}

@@ -134,6 +134,16 @@ export default function PropertyDetailsScreen() {
           </TouchableOpacity>
         </View>
 
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Maintenance</Text>
+          <TouchableOpacity
+            style={styles.maintenanceReportButton}
+            onPress={() => router.push({ pathname: '/(main)/maintenance/report', params: { propertyId: id } })}
+          >
+            <Text style={styles.maintenanceReportButtonText}>Report Maintenance Issue</Text>
+          </TouchableOpacity>
+        </View>
+
         {hasActiveTimerElsewhere && !isCurrentlyCleaningThis && (
           <View style={styles.warningBox}>
             <Text style={styles.warningText}>
@@ -326,6 +336,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   lostPropertyReportButtonText: {
+    fontSize: 14,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#FFFFFF',
+  },
+  maintenanceReportButton: {
+    backgroundColor: '#FF9800',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  maintenanceReportButtonText: {
     fontSize: 14,
     fontFamily: 'Nunito_600SemiBold',
     color: '#FFFFFF',
