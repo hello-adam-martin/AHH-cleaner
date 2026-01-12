@@ -1,12 +1,15 @@
 import { Stack, router, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { Nunito_400Regular, Nunito_600SemiBold, Nunito_700Bold } from '@expo-google-fonts/nunito';
 import { initializeApp } from '@/services/initializeApp';
 import { useAuthStore } from '@/stores/authStore';
 import { ToastContainer } from '@/components/Toast';
+import { onStorageChange, storageKeys } from '@/services/storage';
+import { useSessionStore } from '@/stores/sessionStore';
+import { useHistoryStore } from '@/stores/historyStore';
 
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -48,6 +51,36 @@ export default function RootLayout() {
       router.replace('/(auth)/login');
     }
   }, [appReady, isAuthenticated, segments]);
+
+  // Cross-tab synchronization and visibility change handler (web only)
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+
+    // Re-initialize stores when tab becomes visible (handles PWA resume)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Refresh state from localStorage when tab becomes visible
+        useSessionStore.getState().initializeFromStorage();
+        useHistoryStore.getState().initializeFromStorage();
+      }
+    };
+
+    // Listen for storage changes from other tabs
+    const unsubscribe = onStorageChange((key) => {
+      if (key === storageKeys.ACTIVE_SESSIONS) {
+        useSessionStore.getState().initializeFromStorage();
+      } else if (key === storageKeys.COMPLETED_SESSIONS) {
+        useHistoryStore.getState().initializeFromStorage();
+      }
+    });
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      unsubscribe();
+    };
+  }, []);
 
   if (!fontsLoaded || !appReady) {
     return null;

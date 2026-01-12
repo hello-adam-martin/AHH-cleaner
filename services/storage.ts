@@ -1,6 +1,9 @@
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Storage change callback type
+type StorageChangeCallback = (key: string) => void;
+
 // Storage interface for cross-platform compatibility
 interface Storage {
   getString(key: string): string | undefined;
@@ -8,10 +11,24 @@ interface Storage {
   delete(key: string): void;
   clearAll(): void | Promise<void>;
   waitForReady(): Promise<void>;
+  onStorageChange?(callback: StorageChangeCallback): () => void;
 }
 
-// Web fallback using localStorage
+// Web fallback using localStorage with cross-tab synchronization
 class WebStorage implements Storage {
+  private listeners: Set<StorageChangeCallback> = new Set();
+
+  constructor() {
+    // Listen for storage changes from other tabs/windows
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (e) => {
+        if (e.key) {
+          this.listeners.forEach(listener => listener(e.key!));
+        }
+      });
+    }
+  }
+
   getString(key: string): string | undefined {
     if (typeof window !== 'undefined' && window.localStorage) {
       return window.localStorage.getItem(key) || undefined;
@@ -40,6 +57,12 @@ class WebStorage implements Storage {
   async waitForReady(): Promise<void> {
     // localStorage is synchronous, always ready
     return;
+  }
+
+  // Subscribe to storage changes from other tabs
+  onStorageChange(callback: StorageChangeCallback): () => void {
+    this.listeners.add(callback);
+    return () => this.listeners.delete(callback);
   }
 }
 
@@ -115,6 +138,15 @@ if (Platform.OS === 'web') {
 export { storage };
 
 export const waitForStorageReady = () => storage.waitForReady();
+
+// Subscribe to storage changes from other tabs (web only)
+export const onStorageChange = (callback: StorageChangeCallback): (() => void) => {
+  if (storage.onStorageChange) {
+    return storage.onStorageChange(callback);
+  }
+  // Return no-op unsubscribe for native
+  return () => {};
+};
 
 export const storageKeys = {
   CLEANERS: 'cleaners',

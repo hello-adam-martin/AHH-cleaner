@@ -4,6 +4,7 @@ import {
   BOOKINGS_TABLE,
   CLEANING_DURATION_FIELD,
   CONSUMABLES_COST_FIELD,
+  SYNCED_SESSION_IDS_FIELD,
   calculateConsumablesTotalCost,
 } from './_lib/airtable';
 
@@ -36,6 +37,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ success: false, error: 'Invalid session data - missing propertyId or duration' });
     }
 
+    // Validate session ID for idempotency
+    if (!session.sessionId) {
+      return res.status(400).json({ success: false, error: 'Missing sessionId for idempotency check' });
+    }
+
     const recordId = session.propertyId;
     const isBlocked = session.isBlocked === true;
     const tableName = isBlocked ? 'Blocked Dates' : BOOKINGS_TABLE;
@@ -46,15 +52,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const record = await base(tableName).find(recordId);
     const fields = record.fields as any;
 
-    // 2. Get existing values (default to 0 if not set)
+    // 2. Check if this session was already synced (idempotency)
+    const syncedIdsRaw = fields[SYNCED_SESSION_IDS_FIELD] as string | undefined;
+    const syncedIds: string[] = syncedIdsRaw?.split(',').filter(Boolean) || [];
+    if (syncedIds.includes(session.sessionId)) {
+      console.log(`  -> Session ${session.sessionId} already synced, skipping (idempotent)`);
+      return res.status(200).json({ success: true, alreadySynced: true });
+    }
+
+    // 3. Get existing values (default to 0 if not set)
     const existingDurationSeconds = (fields[CLEANING_DURATION_FIELD] as number) || 0;
     const existingCost = (fields[CONSUMABLES_COST_FIELD] as number) || 0;
 
-    // 3. Calculate session values
-    const sessionDurationMs = session.duration;
-    const helperDurationMs = session.helperTotalPausedDuration || 0;
-    const totalSessionDurationMs = sessionDurationMs + helperDurationMs;
+    // 4. Calculate session values
+    // Note: session.duration already includes cleaner + helper time (combined on client in historyStore.ts)
+    // We receive helperAccumulatedDuration separately only for logging purposes
+    const totalSessionDurationMs = session.duration;
     const totalSessionDurationSeconds = totalSessionDurationMs / 1000;
+    // Helper time is already included in duration - this is just for logging
+    const helperDurationMs = session.helperAccumulatedDuration || 0;
+    const cleanerDurationMs = totalSessionDurationMs - helperDurationMs;
 
     // Calculate consumables cost
     const sessionCost = calculateConsumablesTotalCost(session.consumables || {});
@@ -65,19 +82,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Logging for debugging
     const existingDurationHours = existingDurationSeconds / 3600;
-    const sessionDurationHours = sessionDurationMs / 1000 / 3600;
+    const cleanerDurationHours = cleanerDurationMs / 1000 / 3600;
     const helperDurationHours = helperDurationMs / 1000 / 3600;
     const totalSessionDurationHours = totalSessionDurationMs / 1000 / 3600;
     const newDurationHours = newDurationSeconds / 3600;
 
-    console.log(`  -> Cleaner time: ${sessionDurationHours.toFixed(2)}h, Helper time: ${helperDurationHours.toFixed(2)}h`);
+    console.log(`  -> Session ID: ${session.sessionId}`);
+    console.log(`  -> Cleaner time: ${cleanerDurationHours.toFixed(2)}h, Helper time: ${helperDurationHours.toFixed(2)}h (combined: ${totalSessionDurationHours.toFixed(2)}h)`);
     console.log(`  -> Adding ${totalSessionDurationHours.toFixed(2)}h to ${existingDurationHours.toFixed(2)}h = ${newDurationHours.toFixed(2)}h`);
     console.log(`  -> Adding $${sessionCost.toFixed(2)} to $${existingCost.toFixed(2)} = $${newCost.toFixed(2)}`);
 
-    // 5. Update the record
+    // 5. Update the record with session ID tracking for idempotency
+    const newSyncedIds = [...syncedIds, session.sessionId].join(',');
     await base(tableName).update(recordId, {
       [CLEANING_DURATION_FIELD]: newDurationSeconds,
       [CONSUMABLES_COST_FIELD]: newCost,
+      [SYNCED_SESSION_IDS_FIELD]: newSyncedIds,
     });
 
     console.log(`  -> Successfully updated ${isBlocked ? 'blocked date' : 'booking'} ${recordId}`);

@@ -72,6 +72,7 @@ export async function updateBookingWithCleaningData(
   const result = await fetchFromApi<{ success: boolean; error?: string }>('/sessions', {
     method: 'POST',
     body: JSON.stringify({
+      sessionId: session.id,
       propertyId: session.propertyId,
       duration: session.duration,
       helperAccumulatedDuration: session.helperAccumulatedDuration || 0,

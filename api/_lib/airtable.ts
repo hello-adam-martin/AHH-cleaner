@@ -15,6 +15,7 @@ export const CHECKIN_DATE_FIELD = process.env.AIRTABLE_CHECKIN_DATE_FIELD || 'Ch
 export const PROPERTY_LINK_FIELD = process.env.AIRTABLE_PROPERTY_LINK_FIELD || 'Property';
 export const CLEANING_DURATION_FIELD = process.env.AIRTABLE_CLEANING_DURATION_FIELD || 'Cleaning Time';
 export const CONSUMABLES_COST_FIELD = process.env.AIRTABLE_CONSUMABLES_COST_FIELD || 'Linen Costs';
+export const SYNCED_SESSION_IDS_FIELD = process.env.AIRTABLE_SYNCED_SESSION_IDS_FIELD || 'Synced Session IDs';
 
 let base: Airtable.Base | null = null;
 
