@@ -22,7 +22,9 @@ export interface Property {
   imageUrl?: string;
   cleaningTime?: number; // Total cleaning time in hours (from Airtable)
   consumablesCost?: number; // Total consumables cost in dollars (from Airtable)
-  guestCount?: number; // Number of guests staying (from Airtable)
+  guestCount?: number; // Number of guests staying (from Airtable) - checkout guests
+  nextGuestCount?: number; // Number of guests in next booking (checking in)
+  nextCheckoutDate?: string; // When next booking ends (to calculate nights)
   isOverdue?: boolean; // True if checkout date is before today (missed cleaning)
   isBlocked?: boolean; // True if from Blocked Dates table
   blockedReason?: string; // Reason field from Blocked Dates

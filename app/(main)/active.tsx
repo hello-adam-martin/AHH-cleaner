@@ -354,20 +354,38 @@ export default function ActiveCleaningScreen() {
           <View style={styles.propertyHeaderLeft}>
             <Text style={styles.propertyName}>{property.name}</Text>
             <Text style={styles.address}>{property.address}</Text>
-            <View style={styles.propertyMeta}>
-              {property.guestCount !== undefined && property.guestCount > 0 && (
-                <View style={styles.guestCountBadge}>
-                  <Text style={styles.guestCountText}>
-                    {property.guestCount} {property.guestCount === 1 ? 'guest' : 'guests'}
+            {/* Booking Info Card */}
+            {(property.guestCount || property.nextCheckinDate) && (
+              <View style={styles.bookingInfoCard}>
+                {property.guestCount !== undefined && property.guestCount > 0 && (
+                  <View style={styles.bookingInfoRow}>
+                    <Text style={styles.bookingInfoLabel}>OUT</Text>
+                    <Text style={styles.bookingInfoValue}>
+                      {property.guestCount} {property.guestCount === 1 ? 'guest' : 'guests'}
+                    </Text>
+                  </View>
+                )}
+                {property.nextCheckinDate && (
+                  <View style={styles.bookingInfoRow}>
+                    <Text style={styles.bookingInfoLabelIn}>IN</Text>
+                    <Text style={styles.bookingInfoValue}>
+                      {property.nextGuestCount ? `${property.nextGuestCount} ${property.nextGuestCount === 1 ? 'guest' : 'guests'}` : 'Guests TBC'}
+                      {property.nextCheckoutDate && property.nextCheckinDate && (() => {
+                        const checkin = new Date(property.nextCheckinDate);
+                        const checkout = new Date(property.nextCheckoutDate);
+                        const nights = Math.round((checkout.getTime() - checkin.getTime()) / (1000 * 60 * 60 * 24));
+                        return nights > 0 ? ` • ${nights} ${nights === 1 ? 'night' : 'nights'}` : '';
+                      })()}
+                    </Text>
+                  </View>
+                )}
+                {property.nextCheckinDate && (
+                  <Text style={styles.checkinDate}>
+                    Check-in: {formatCheckinDate(property.nextCheckinDate)}
                   </Text>
-                </View>
-              )}
-              {property.nextCheckinDate && (
-                <Text style={styles.checkinDate}>
-                  Check-in: {formatCheckinDate(property.nextCheckinDate)}
-                </Text>
-              )}
-            </View>
+                )}
+              </View>
+            )}
           </View>
           {authenticatedCleaner && (
             <CleanerBadge cleaner={authenticatedCleaner} size="small" />
@@ -833,27 +851,49 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_400Regular',
     color: '#666',
   },
-  propertyMeta: {
+  bookingInfoCard: {
+    marginTop: 12,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 10,
+    padding: 12,
+    gap: 6,
+  },
+  bookingInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginTop: 8,
+    gap: 8,
   },
-  guestCountBadge: {
-    backgroundColor: '#E3F2FD',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 12,
+  bookingInfoLabel: {
+    fontSize: 11,
+    fontFamily: 'Nunito_700Bold',
+    color: '#E65100',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    overflow: 'hidden',
   },
-  guestCountText: {
-    fontSize: 12,
+  bookingInfoLabelIn: {
+    fontSize: 11,
+    fontFamily: 'Nunito_700Bold',
+    color: '#2E7D32',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  bookingInfoValue: {
+    fontSize: 14,
     fontFamily: 'Nunito_600SemiBold',
-    color: '#1976D2',
+    color: theme.colors.text,
+    flex: 1,
   },
   checkinDate: {
     fontSize: 12,
     fontFamily: 'Nunito_600SemiBold',
-    color: '#FF5722',
+    color: '#666',
+    marginTop: 4,
   },
   timersCard: {
     backgroundColor: '#FFFFFF',

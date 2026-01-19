@@ -12,10 +12,16 @@ import {
   CONSUMABLES_COST_FIELD,
 } from './_lib/airtable';
 
-async function fetchNextCheckinDate(base: any, propertyId: string): Promise<string | undefined> {
+interface NextBookingInfo {
+  checkinDate?: string;
+  checkoutDate?: string;
+  guests?: number;
+}
+
+async function fetchNextBookingInfo(base: any, propertyId: string): Promise<NextBookingInfo | undefined> {
   try {
     const todayDate = getTodayDateString();
-    console.log(`Fetching next check-in for property ID: ${propertyId} (today: ${todayDate})...`);
+    console.log(`Fetching next booking for property ID: ${propertyId} (today: ${todayDate})...`);
 
     const records = await base(BOOKINGS_TABLE)
       .select({
@@ -23,22 +29,25 @@ async function fetchNextCheckinDate(base: any, propertyId: string): Promise<stri
           {Property ID} = "${propertyId}",
           {${CHECKIN_DATE_FIELD}} >= '${todayDate}'
         )`,
-        fields: [CHECKIN_DATE_FIELD],
+        fields: [CHECKIN_DATE_FIELD, CHECKOUT_DATE_FIELD, 'Guests'],
         sort: [{ field: CHECKIN_DATE_FIELD, direction: 'asc' }],
         maxRecords: 1,
       })
       .firstPage();
 
     if (records.length > 0) {
-      const nextDate = records[0].fields[CHECKIN_DATE_FIELD] as string;
-      console.log(`  -> Found next check-in: ${nextDate}`);
-      return nextDate;
+      const fields = records[0].fields as any;
+      const checkinDate = fields[CHECKIN_DATE_FIELD] as string;
+      const checkoutDate = fields[CHECKOUT_DATE_FIELD] as string;
+      const guests = fields['Guests'] as number;
+      console.log(`  -> Found next booking: check-in ${checkinDate}, checkout ${checkoutDate}, ${guests} guests`);
+      return { checkinDate, checkoutDate, guests };
     }
 
-    console.log(`  -> No future check-in found`);
+    console.log(`  -> No future booking found`);
     return undefined;
   } catch (error) {
-    console.warn('Could not fetch next check-in date:', error);
+    console.warn('Could not fetch next booking info:', error);
     return undefined;
   }
 }
@@ -105,7 +114,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       let propertyName = fields['Property Name'] || fields[PROPERTY_LINK_FIELD];
       let propertyAddress = fields['Address (from Property)'] || '';
-      let nextCheckinDate: string | undefined;
+      let nextBookingInfo: NextBookingInfo | undefined;
 
       const propertyId = fields['Property ID'] as string;
 
@@ -117,9 +126,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           propertyName = propertyRecord.fields['Name'] || propertyName;
           propertyAddress = propertyRecord.fields['Address'] || propertyAddress;
 
-          // Fetch next check-in date for this property using Property Id
+          // Fetch next booking info for this property using Property Id
           if (propertyId) {
-            nextCheckinDate = await fetchNextCheckinDate(base, propertyId);
+            nextBookingInfo = await fetchNextBookingInfo(base, propertyId);
           }
         } catch (error) {
           console.warn('Could not fetch linked property details:', error);
@@ -143,7 +152,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         address: String(propertyAddress || ''),
         checkoutDate,
         checkinDate: fields[CHECKIN_DATE_FIELD] as string,
-        nextCheckinDate,
+        nextCheckinDate: nextBookingInfo?.checkinDate,
+        nextCheckoutDate: nextBookingInfo?.checkoutDate,
+        nextGuestCount: nextBookingInfo?.guests,
         notes: fields['Notes'] as string,
         cleaningTime,
         consumablesCost,
