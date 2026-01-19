@@ -24,7 +24,6 @@ export default function ReportScreen() {
           style={styles.reportCard}
           onPress={() => router.push('/(main)/lost-property/report')}
         >
-          <Text style={styles.reportIcon}>📦</Text>
           <View style={styles.reportCardContent}>
             <Text style={styles.reportCardTitle}>Lost Property</Text>
             <Text style={styles.reportCardDescription}>
@@ -35,10 +34,9 @@ export default function ReportScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.reportCard, styles.reportCardMaintenance]}
+          style={styles.reportCard}
           onPress={() => router.push('/(main)/maintenance/report')}
         >
-          <Text style={styles.reportIcon}>🔧</Text>
           <View style={styles.reportCardContent}>
             <Text style={styles.reportCardTitle}>Maintenance Issue</Text>
             <Text style={styles.reportCardDescription}>
@@ -96,14 +94,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  reportCardMaintenance: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF9800',
-  },
-  reportIcon: {
-    fontSize: 32,
-    marginRight: 16,
   },
   reportCardContent: {
     flex: 1,
