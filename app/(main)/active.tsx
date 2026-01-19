@@ -354,35 +354,31 @@ export default function ActiveCleaningScreen() {
           <View style={styles.propertyHeaderLeft}>
             <Text style={styles.propertyName}>{property.name}</Text>
             <Text style={styles.address}>{property.address}</Text>
-            {/* Booking Info Card */}
+            {/* Booking Info */}
             {(property.guestCount || property.nextCheckinDate) && (
-              <View style={styles.bookingInfoCard}>
+              <View style={styles.bookingInfo}>
                 {property.guestCount !== undefined && property.guestCount > 0 && (
-                  <View style={styles.bookingInfoRow}>
-                    <Text style={styles.bookingInfoLabel}>OUT</Text>
-                    <Text style={styles.bookingInfoValue}>
+                  <View style={styles.bookingRow}>
+                    <Text style={styles.bookingLabelOut}>OUT</Text>
+                    <Text style={styles.bookingValue}>
                       {property.guestCount} {property.guestCount === 1 ? 'guest' : 'guests'}
                     </Text>
                   </View>
                 )}
                 {property.nextCheckinDate && (
-                  <View style={styles.bookingInfoRow}>
-                    <Text style={styles.bookingInfoLabelIn}>IN</Text>
-                    <Text style={styles.bookingInfoValue}>
-                      {property.nextGuestCount ? `${property.nextGuestCount} ${property.nextGuestCount === 1 ? 'guest' : 'guests'}` : 'Guests TBC'}
+                  <View style={styles.bookingRow}>
+                    <Text style={styles.bookingLabelIn}>IN</Text>
+                    <Text style={styles.bookingValue}>
+                      {property.nextGuestCount ? `${property.nextGuestCount} ${property.nextGuestCount === 1 ? 'guest' : 'guests'}` : 'TBC'}
                       {property.nextCheckoutDate && property.nextCheckinDate && (() => {
                         const checkin = new Date(property.nextCheckinDate);
                         const checkout = new Date(property.nextCheckoutDate);
                         const nights = Math.round((checkout.getTime() - checkin.getTime()) / (1000 * 60 * 60 * 24));
-                        return nights > 0 ? ` • ${nights} ${nights === 1 ? 'night' : 'nights'}` : '';
+                        return nights > 0 ? ` • ${nights}n` : '';
                       })()}
                     </Text>
+                    <Text style={styles.checkinTime}>{formatCheckinDate(property.nextCheckinDate)}</Text>
                   </View>
-                )}
-                {property.nextCheckinDate && (
-                  <Text style={styles.checkinDate}>
-                    Check-in: {formatCheckinDate(property.nextCheckinDate)}
-                  </Text>
                 )}
               </View>
             )}
@@ -851,49 +847,46 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_400Regular',
     color: '#666',
   },
-  bookingInfoCard: {
+  bookingInfo: {
     marginTop: 12,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 10,
-    padding: 12,
-    gap: 6,
   },
-  bookingInfoRow: {
+  bookingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    marginBottom: 6,
   },
-  bookingInfoLabel: {
-    fontSize: 11,
+  bookingLabelOut: {
+    backgroundColor: '#EF5350',
+    color: '#FFFFFF',
+    fontSize: 10,
     fontFamily: 'Nunito_700Bold',
-    color: '#E65100',
-    backgroundColor: '#FFF3E0',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginRight: 8,
     overflow: 'hidden',
   },
-  bookingInfoLabelIn: {
-    fontSize: 11,
+  bookingLabelIn: {
+    backgroundColor: '#4CAF50',
+    color: '#FFFFFF',
+    fontSize: 10,
     fontFamily: 'Nunito_700Bold',
-    color: '#2E7D32',
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginRight: 8,
     overflow: 'hidden',
   },
-  bookingInfoValue: {
+  bookingValue: {
     fontSize: 14,
     fontFamily: 'Nunito_600SemiBold',
-    color: theme.colors.text,
-    flex: 1,
+    color: '#333',
   },
-  checkinDate: {
-    fontSize: 12,
-    fontFamily: 'Nunito_600SemiBold',
+  checkinTime: {
+    fontSize: 13,
+    fontFamily: 'Nunito_400Regular',
     color: '#666',
-    marginTop: 4,
+    marginLeft: 'auto',
   },
   timersCard: {
     backgroundColor: '#FFFFFF',
