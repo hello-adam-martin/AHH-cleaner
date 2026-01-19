@@ -53,7 +53,8 @@ export default function ActiveCleaningScreen() {
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const [headerOpacity] = useState(new Animated.Value(0));
 
-  // Completion modal state
+  // Completion modal state - two steps: consumables then confirmation
+  const [showConsumablesModal, setShowConsumablesModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
 
@@ -146,8 +147,19 @@ export default function ActiveCleaningScreen() {
       } catch (e) {
         // Haptics not available on web
       }
-      setShowCompleteModal(true);
+      // Show consumables entry modal first
+      setShowConsumablesModal(true);
     }
+  };
+
+  const handleConsumablesNext = () => {
+    setShowConsumablesModal(false);
+    setShowCompleteModal(true);
+  };
+
+  const handleBackToConsumables = () => {
+    setShowCompleteModal(false);
+    setShowConsumablesModal(true);
   };
 
   const handleConfirmComplete = async () => {
@@ -408,50 +420,6 @@ export default function ActiveCleaningScreen() {
           </View>
         </View>
 
-        <View style={styles.consumablesSection}>
-          <Text style={styles.sectionTitle}>Consumables Used</Text>
-          {categoriesWithItems.map((category) => {
-            const isExpanded = expandedCategories.has(category.id);
-            const categoryTotal = category.items.reduce(
-              (sum, item) => sum + (session.consumables[item.id] || 0),
-              0
-            );
-
-            return (
-              <View key={category.id} style={styles.categorySection}>
-                <TouchableOpacity
-                  style={styles.categoryHeader}
-                  onPress={() => toggleCategory(category.id)}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.categoryHeaderLeft}>
-                    <Text style={styles.categoryTitle}>{category.name}</Text>
-                    {categoryTotal > 0 && (
-                      <View style={styles.categoryBadge}>
-                        <Text style={styles.categoryBadgeText}>{categoryTotal}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text style={styles.chevron}>{isExpanded ? '▼' : '▶'}</Text>
-                </TouchableOpacity>
-                {isExpanded && (
-                  <View style={styles.consumablesGrid}>
-                    {category.items.map((item) => (
-                      <ConsumableCounter
-                        key={item.id}
-                        label={item.name}
-                        value={session.consumables[item.id] || 0}
-                        onIncrement={() => handleUpdateConsumable(item.id, (session.consumables[item.id] || 0) + 1)}
-                        onDecrement={() => handleUpdateConsumable(item.id, Math.max(0, (session.consumables[item.id] || 0) - 1))}
-                      />
-                    ))}
-                  </View>
-                )}
-              </View>
-            );
-          })}
-        </View>
-
         {property.notes && (
           <View style={styles.notesSection}>
             <Text style={styles.notesTitle}>Property Notes</Text>
@@ -524,6 +492,86 @@ export default function ActiveCleaningScreen() {
         </View>
       </View>
 
+      {/* Consumables Entry Modal */}
+      <Modal
+        visible={showConsumablesModal}
+        transparent={false}
+        animationType="slide"
+        onRequestClose={() => setShowConsumablesModal(false)}
+      >
+        <SafeAreaView style={styles.consumablesModalContainer}>
+          <View style={styles.consumablesModalHeader}>
+            <TouchableOpacity
+              style={styles.consumablesBackBtn}
+              onPress={() => setShowConsumablesModal(false)}
+            >
+              <Text style={styles.consumablesBackText}>Cancel</Text>
+            </TouchableOpacity>
+            <Text style={styles.consumablesModalTitle}>Consumables Used</Text>
+            <TouchableOpacity
+              style={styles.consumablesNextBtn}
+              onPress={handleConsumablesNext}
+            >
+              <Text style={styles.consumablesNextText}>Next</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.consumablesModalSubtitle}>{property.name}</Text>
+          <ScrollView
+            style={styles.consumablesModalScroll}
+            contentContainerStyle={styles.consumablesModalScrollContent}
+          >
+            {categoriesWithItems.map((category) => {
+              const isExpanded = expandedCategories.has(category.id);
+              const categoryTotal = category.items.reduce(
+                (sum, item) => sum + (session.consumables[item.id] || 0),
+                0
+              );
+
+              return (
+                <View key={category.id} style={styles.categorySection}>
+                  <TouchableOpacity
+                    style={styles.categoryHeader}
+                    onPress={() => toggleCategory(category.id)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.categoryHeaderLeft}>
+                      <Text style={styles.categoryTitle}>{category.name}</Text>
+                      {categoryTotal > 0 && (
+                        <View style={styles.categoryBadge}>
+                          <Text style={styles.categoryBadgeText}>{categoryTotal}</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.chevron}>{isExpanded ? '▼' : '▶'}</Text>
+                  </TouchableOpacity>
+                  {isExpanded && (
+                    <View style={styles.consumablesGrid}>
+                      {category.items.map((item) => (
+                        <ConsumableCounter
+                          key={item.id}
+                          label={item.name}
+                          value={session.consumables[item.id] || 0}
+                          onIncrement={() => handleUpdateConsumable(item.id, (session.consumables[item.id] || 0) + 1)}
+                          onDecrement={() => handleUpdateConsumable(item.id, Math.max(0, (session.consumables[item.id] || 0) - 1))}
+                        />
+                      ))}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </ScrollView>
+          <View style={styles.consumablesModalFooter}>
+            <TouchableOpacity
+              style={styles.consumablesModalNextBtn}
+              onPress={handleConsumablesNext}
+            >
+              <Text style={styles.consumablesModalNextText}>Next: Review & Complete</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
       {/* Completion Confirmation Modal */}
       <Modal
         visible={showCompleteModal}
@@ -570,10 +618,10 @@ export default function ActiveCleaningScreen() {
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.modalCancelBtn}
-                onPress={() => setShowCompleteModal(false)}
+                onPress={handleBackToConsumables}
                 disabled={isCompleting}
               >
-                <Text style={styles.modalCancelText}>Cancel</Text>
+                <Text style={styles.modalCancelText}>Back</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalConfirmBtn, isCompleting && styles.modalConfirmBtnDisabled]}
@@ -1336,5 +1384,77 @@ const styles = StyleSheet.create({
   },
   modalDiscardBtn: {
     backgroundColor: '#F44336',
+  },
+  // Consumables Modal styles
+  consumablesModalContainer: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  consumablesModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  consumablesBackBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  consumablesBackText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#666',
+  },
+  consumablesModalTitle: {
+    fontSize: 18,
+    fontFamily: 'Nunito_700Bold',
+    color: theme.colors.text,
+  },
+  consumablesNextBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  consumablesNextText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_700Bold',
+    color: '#2196F3',
+  },
+  consumablesModalSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#666',
+    textAlign: 'center',
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  consumablesModalScroll: {
+    flex: 1,
+  },
+  consumablesModalScrollContent: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  consumablesModalFooter: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  consumablesModalNextBtn: {
+    backgroundColor: '#2196F3',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  consumablesModalNextText: {
+    fontSize: 18,
+    fontFamily: 'Nunito_700Bold',
+    color: '#FFFFFF',
   },
 });
