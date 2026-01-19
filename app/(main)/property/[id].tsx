@@ -5,7 +5,7 @@ import { useCleanerStore } from '@/stores/cleanerStore';
 import { usePropertiesStore } from '@/stores/propertiesStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { CleanerBadge } from '@/components/CleanerBadge';
-import { getTimeUntil, formatTime, formatCheckinDate, formatHoursAndMinutes } from '@/utils/time';
+import { getTimeUntil, formatTime, formatCheckinDate } from '@/utils/time';
 import { theme } from '@/constants/theme';
 import * as Haptics from 'expo-haptics';
 import type { PropertySnapshot } from '@/types';
@@ -78,26 +78,6 @@ export default function PropertyDetailsScreen() {
         <View style={styles.cleanerIndicator}>
           <Text style={styles.cleanerLabel}>Logged in as:</Text>
           <Text style={styles.cleanerNameText}>{authenticatedCleaner.name}</Text>
-        </View>
-
-        <View style={styles.debugSection}>
-          <Text style={styles.debugTitle}>Current Totals (Debug)</Text>
-          <View style={styles.debugRow}>
-            <Text style={styles.debugLabel}>Cleaning Time:</Text>
-            <Text style={styles.debugValue}>
-              {property.cleaningTime !== undefined
-                ? formatHoursAndMinutes(property.cleaningTime)
-                : '0m'}
-            </Text>
-          </View>
-          <View style={styles.debugRow}>
-            <Text style={styles.debugLabel}>Linen Costs:</Text>
-            <Text style={styles.debugValue}>
-              {property.consumablesCost !== undefined
-                ? `$${property.consumablesCost.toFixed(2)}`
-                : '$0.00'}
-            </Text>
-          </View>
         </View>
 
         <View style={styles.section}>
@@ -251,37 +231,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Nunito_700Bold',
     color: theme.colors.text,
-  },
-  debugSection: {
-    backgroundColor: '#FFF9E6',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#FFE066',
-  },
-  debugTitle: {
-    fontSize: 12,
-    fontFamily: 'Nunito_700Bold',
-    color: '#996600',
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  debugRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  debugLabel: {
-    fontSize: 14,
-    fontFamily: 'Nunito_600SemiBold',
-    color: '#666',
-  },
-  debugValue: {
-    fontSize: 16,
-    fontFamily: 'Nunito_700Bold',
-    color: '#996600',
   },
   section: {
     backgroundColor: '#FFFFFF',

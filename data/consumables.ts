@@ -175,6 +175,21 @@ export const consumableItems: ConsumableItem[] = [
   },
 ];
 
+// Favorite consumable IDs for Quick Add section (most commonly used items)
+export const favoriteConsumableIds = [
+  'bath_towels',
+  'hand_towels',
+  'queen_sheets',
+  'pillowcases',
+];
+
+// Helper to get favorite consumable items
+export const getFavoriteConsumables = (): ConsumableItem[] => {
+  return favoriteConsumableIds
+    .map((id) => consumableItems.find((item) => item.id === id))
+    .filter((item): item is ConsumableItem => item !== undefined);
+};
+
 // Helper to get items by category
 export const getItemsByCategory = (categoryId: string): ConsumableItem[] => {
   return consumableItems

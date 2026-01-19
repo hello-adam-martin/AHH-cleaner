@@ -11,7 +11,7 @@ import { CleanerBadge } from '@/components/CleanerBadge';
 import { useTimer } from '@/hooks/useTimer';
 import { useHelperTimer } from '@/hooks/useHelperTimer';
 import { theme } from '@/constants/theme';
-import { getCategoriesWithItems, consumableItems } from '@/data/consumables';
+import { getCategoriesWithItems, consumableItems, getFavoriteConsumables } from '@/data/consumables';
 import * as Haptics from 'expo-haptics';
 
 export default function ActiveCleaningScreen() {
@@ -43,18 +43,18 @@ export default function ActiveCleaningScreen() {
   const helperElapsedTime = useHelperTimer(session);
 
   const categoriesWithItems = getCategoriesWithItems();
+  const favoriteConsumables = getFavoriteConsumables();
 
-  // Track which categories are expanded (all collapsed by default)
+  // Track which categories are expanded (all expanded by default for faster entry)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    new Set()
+    () => new Set(categoriesWithItems.map(c => c.id))
   );
 
   // Track scroll position for sticky header
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const [headerOpacity] = useState(new Animated.Value(0));
 
-  // Completion modal state - two steps: consumables then confirmation
-  const [showConsumablesModal, setShowConsumablesModal] = useState(false);
+  // Completion modal state - single combined modal
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
 
@@ -147,19 +147,9 @@ export default function ActiveCleaningScreen() {
       } catch (e) {
         // Haptics not available on web
       }
-      // Show consumables entry modal first
-      setShowConsumablesModal(true);
+      // Show combined completion modal
+      setShowCompleteModal(true);
     }
-  };
-
-  const handleConsumablesNext = () => {
-    setShowConsumablesModal(false);
-    setShowCompleteModal(true);
-  };
-
-  const handleBackToConsumables = () => {
-    setShowCompleteModal(false);
-    setShowConsumablesModal(true);
   };
 
   const handleConfirmComplete = async () => {
@@ -444,6 +434,16 @@ export default function ActiveCleaningScreen() {
       {/* Sticky Footer - always visible */}
       <View style={styles.stickyFooter}>
         <View style={styles.controls}>
+          {/* Primary action - Complete Cleaning */}
+          <View style={styles.controlRow}>
+            <TouchableOpacity
+              style={styles.completeButton}
+              onPress={handleComplete}
+            >
+              <Text style={styles.buttonText}>Complete Cleaning</Text>
+            </TouchableOpacity>
+          </View>
+          {/* Timer controls */}
           <View style={styles.controlRow}>
             {isStopped ? (
               <TouchableOpacity
@@ -474,26 +474,19 @@ export default function ActiveCleaningScreen() {
               </TouchableOpacity>
             )}
           </View>
+          {/* Report buttons */}
           <View style={styles.controlRow}>
             <TouchableOpacity
               style={styles.lostPropertyButton}
               onPress={() => router.push({ pathname: '/(main)/lost-property/report', params: { propertyId: property.id } })}
             >
-              <Text style={styles.lostPropertyButtonText}>Report Lost Property</Text>
+              <Text style={styles.lostPropertyButtonText}>Lost Property</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.maintenanceButton}
               onPress={() => router.push({ pathname: '/(main)/maintenance/report', params: { propertyId: property.id } })}
             >
-              <Text style={styles.maintenanceButtonText}>Report Maintenance</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.controlRow}>
-            <TouchableOpacity
-              style={styles.completeButton}
-              onPress={handleComplete}
-            >
-              <Text style={styles.buttonText}>Complete Cleaning</Text>
+              <Text style={styles.maintenanceButtonText}>Maintenance</Text>
             </TouchableOpacity>
           </View>
           <TouchableOpacity
@@ -505,38 +498,72 @@ export default function ActiveCleaningScreen() {
         </View>
       </View>
 
-      {/* Consumables Entry Modal */}
+      {/* Combined Completion Modal with Consumables */}
       <Modal
-        visible={showConsumablesModal}
+        visible={showCompleteModal}
         transparent={false}
         animationType="slide"
-        onRequestClose={() => setShowConsumablesModal(false)}
+        onRequestClose={() => !isCompleting && setShowCompleteModal(false)}
       >
         <SafeAreaView style={styles.consumablesModalContainer}>
           <View style={styles.consumablesModalHeader}>
             <TouchableOpacity
               style={styles.consumablesBackBtn}
-              onPress={() => setShowConsumablesModal(false)}
+              onPress={() => !isCompleting && setShowCompleteModal(false)}
+              disabled={isCompleting}
             >
               <Text style={styles.consumablesBackText}>Cancel</Text>
             </TouchableOpacity>
-            <Text style={styles.consumablesModalTitle}>Consumables Used</Text>
-            <TouchableOpacity
-              style={styles.consumablesNextBtn}
-              onPress={handleConsumablesNext}
-            >
-              <Text style={styles.consumablesNextText}>Next</Text>
-            </TouchableOpacity>
+            <Text style={styles.consumablesModalTitle}>Complete Cleaning</Text>
+            <View style={{ width: 60 }} />
           </View>
-          <Text style={styles.consumablesModalSubtitle}>{property.name}</Text>
+
           <ScrollView
             style={styles.consumablesModalScroll}
             contentContainerStyle={styles.consumablesModalScrollContent}
           >
+            {/* Time Summary */}
+            <View style={styles.completionTimeSummary}>
+              <Text style={styles.completionPropertyName}>{property?.name}</Text>
+              <Text style={styles.completionTotalTime}>{formatCompactTime(elapsedTime + helperElapsedTime)}</Text>
+              <Text style={styles.completionTimeBreakdown}>
+                Cleaner: {formatCompactTime(elapsedTime)}
+                {helperElapsedTime > 0 && ` + Helper: ${formatCompactTime(helperElapsedTime)}`}
+              </Text>
+            </View>
+
+            {/* Quick Add Section */}
+            <View style={styles.quickAddSection}>
+              <Text style={styles.quickAddTitle}>QUICK ADD</Text>
+              <View style={styles.quickAddGrid}>
+                {favoriteConsumables.map((item) => (
+                  <View key={item.id} style={styles.quickAddItem}>
+                    <Text style={styles.quickAddLabel}>{item.name}</Text>
+                    <View style={styles.quickAddControls}>
+                      <TouchableOpacity
+                        style={styles.quickAddBtn}
+                        onPress={() => handleUpdateConsumable(item.id, Math.max(0, (session?.consumables[item.id] || 0) - 1))}
+                      >
+                        <Text style={styles.quickAddBtnText}>-</Text>
+                      </TouchableOpacity>
+                      <Text style={styles.quickAddValue}>{session?.consumables[item.id] || 0}</Text>
+                      <TouchableOpacity
+                        style={[styles.quickAddBtn, styles.quickAddBtnPlus]}
+                        onPress={() => handleUpdateConsumable(item.id, (session?.consumables[item.id] || 0) + 1)}
+                      >
+                        <Text style={[styles.quickAddBtnText, styles.quickAddBtnTextPlus]}>+</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* All Categories */}
             {categoriesWithItems.map((category) => {
               const isExpanded = expandedCategories.has(category.id);
               const categoryTotal = category.items.reduce(
-                (sum, item) => sum + (session.consumables[item.id] || 0),
+                (sum, item) => sum + (session?.consumables[item.id] || 0),
                 0
               );
 
@@ -563,9 +590,9 @@ export default function ActiveCleaningScreen() {
                         <ConsumableCounter
                           key={item.id}
                           label={item.name}
-                          value={session.consumables[item.id] || 0}
-                          onIncrement={() => handleUpdateConsumable(item.id, (session.consumables[item.id] || 0) + 1)}
-                          onDecrement={() => handleUpdateConsumable(item.id, Math.max(0, (session.consumables[item.id] || 0) - 1))}
+                          value={session?.consumables[item.id] || 0}
+                          onIncrement={() => handleUpdateConsumable(item.id, (session?.consumables[item.id] || 0) + 1)}
+                          onDecrement={() => handleUpdateConsumable(item.id, Math.max(0, (session?.consumables[item.id] || 0) - 1))}
                         />
                       ))}
                     </View>
@@ -574,85 +601,24 @@ export default function ActiveCleaningScreen() {
               );
             })}
           </ScrollView>
+
           <View style={styles.consumablesModalFooter}>
             <TouchableOpacity
-              style={styles.consumablesModalNextBtn}
-              onPress={handleConsumablesNext}
+              style={[styles.completeModalBtn, isCompleting && styles.modalConfirmBtnDisabled]}
+              onPress={handleConfirmComplete}
+              disabled={isCompleting}
             >
-              <Text style={styles.consumablesModalNextText}>Next: Review & Complete</Text>
+              {isCompleting ? (
+                <View style={styles.modalBtnContent}>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text style={styles.consumablesModalNextText}>Saving...</Text>
+                </View>
+              ) : (
+                <Text style={styles.consumablesModalNextText}>Complete Cleaning</Text>
+              )}
             </TouchableOpacity>
           </View>
         </SafeAreaView>
-      </Modal>
-
-      {/* Completion Confirmation Modal */}
-      <Modal
-        visible={showCompleteModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => !isCompleting && setShowCompleteModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Complete Cleaning?</Text>
-            <Text style={styles.modalProperty}>{property.name}</Text>
-
-            <View style={styles.modalSummary}>
-              <View style={styles.modalTimeRow}>
-                <Text style={styles.modalLabel}>Total Time</Text>
-                <Text style={styles.modalValue}>{formatCompactTime(elapsedTime + helperElapsedTime)}</Text>
-              </View>
-              <View style={styles.modalTimeBreakdown}>
-                <Text style={styles.modalSmallText}>
-                  Cleaner: {formatCompactTime(elapsedTime)}
-                  {helperElapsedTime > 0 && ` + Helper: ${formatCompactTime(helperElapsedTime)}`}
-                </Text>
-              </View>
-
-              {/* Consumables summary */}
-              {(() => {
-                const usedConsumables = consumableItems.filter(
-                  (item) => (session.consumables[item.id] || 0) > 0
-                );
-                if (usedConsumables.length === 0) return null;
-                return (
-                  <View style={styles.modalConsumables}>
-                    <Text style={styles.modalConsumablesTitle}>Consumables</Text>
-                    {usedConsumables.map((item) => (
-                      <Text key={item.id} style={styles.modalConsumableItem}>
-                        {item.name}: {session.consumables[item.id]}
-                      </Text>
-                    ))}
-                  </View>
-                );
-              })()}
-            </View>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={handleBackToConsumables}
-                disabled={isCompleting}
-              >
-                <Text style={styles.modalCancelText}>Back</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalConfirmBtn, isCompleting && styles.modalConfirmBtnDisabled]}
-                onPress={handleConfirmComplete}
-                disabled={isCompleting}
-              >
-                {isCompleting ? (
-                  <View style={styles.modalBtnContent}>
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                    <Text style={styles.modalConfirmText}>Saving...</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.modalConfirmText}>Complete</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
       </Modal>
 
       {/* Stop Timer Confirmation Modal */}
@@ -1469,5 +1435,99 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: 'Nunito_700Bold',
     color: '#FFFFFF',
+  },
+  // Combined completion modal styles
+  completionTimeSummary: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  completionPropertyName: {
+    fontSize: 18,
+    fontFamily: 'Nunito_700Bold',
+    color: theme.colors.text,
+    marginBottom: 8,
+  },
+  completionTotalTime: {
+    fontSize: 36,
+    fontFamily: 'Nunito_700Bold',
+    color: theme.colors.text,
+    fontVariant: ['tabular-nums'],
+  },
+  completionTimeBreakdown: {
+    fontSize: 14,
+    fontFamily: 'Nunito_400Regular',
+    color: '#666',
+    marginTop: 4,
+  },
+  quickAddSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  quickAddTitle: {
+    fontSize: 12,
+    fontFamily: 'Nunito_700Bold',
+    color: '#666',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  quickAddGrid: {
+    gap: 12,
+  },
+  quickAddItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  quickAddLabel: {
+    fontSize: 16,
+    fontFamily: 'Nunito_600SemiBold',
+    color: theme.colors.text,
+    flex: 1,
+  },
+  quickAddControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  quickAddBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickAddBtnPlus: {
+    backgroundColor: '#E3F2FD',
+  },
+  quickAddBtnText: {
+    fontSize: 20,
+    fontFamily: 'Nunito_700Bold',
+    color: '#666',
+  },
+  quickAddBtnTextPlus: {
+    color: '#2196F3',
+  },
+  quickAddValue: {
+    fontSize: 18,
+    fontFamily: 'Nunito_700Bold',
+    color: theme.colors.text,
+    minWidth: 24,
+    textAlign: 'center',
+  },
+  completeModalBtn: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
   },
 });
