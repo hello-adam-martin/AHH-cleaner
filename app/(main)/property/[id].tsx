@@ -31,7 +31,7 @@ export default function PropertyDetailsScreen() {
 
   const currentCleanerSessions = activeSessions.filter((s) => s.cleanerId === authenticatedCleaner.id);
   const isCurrentlyCleaningThis = currentCleanerSessions.some((s) => s.propertyId === id);
-  // Check if cleaner has an ACTIVE timer running on another property (can't start new while active)
+  // Check if cleaner has an ACTIVE timer running on another property
   const hasActiveTimerElsewhere = currentCleanerSessions.some((s) => s.propertyId !== id && s.status === 'active');
 
   const handleStartCleaning = async () => {
@@ -153,9 +153,9 @@ export default function PropertyDetailsScreen() {
         </View>
 
         {hasActiveTimerElsewhere && !isCurrentlyCleaningThis && (
-          <View style={styles.warningBox}>
-            <Text style={styles.warningText}>
-              You must stop your current timer before starting a new property.
+          <View style={styles.infoBox}>
+            <Text style={styles.infoText}>
+              Starting here will pause your other timer (helper will keep running)
             </Text>
           </View>
         )}
@@ -171,9 +171,8 @@ export default function PropertyDetailsScreen() {
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={[styles.startButton, hasActiveTimerElsewhere && styles.disabledButton]}
+            style={styles.startButton}
             onPress={handleStartCleaning}
-            disabled={hasActiveTimerElsewhere}
           >
             <Text style={styles.buttonText}>Start Cleaning</Text>
           </TouchableOpacity>

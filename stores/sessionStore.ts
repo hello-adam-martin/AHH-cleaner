@@ -27,13 +27,29 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   activeSessions: [],
 
   startSession: (propertyId, cleanerId, propertySnapshot) => {
-    // Check if cleaner already has an ACTIVE timer running
+    // Auto-stop any other active sessions for this cleaner (but keep helper timers running)
     const existingActive = get().activeSessions.find(
       (s) => s.cleanerId === cleanerId && s.status === 'active'
     );
     if (existingActive) {
-      console.warn('Cleaner already has an active session running');
-      return null;
+      // Stop the cleaner timer but preserve helper timer
+      const now = Date.now();
+      const segmentDuration = now - existingActive.startTime;
+      set((state) => {
+        const updated = state.activeSessions.map((session) => {
+          if (session.id === existingActive.id) {
+            return {
+              ...session,
+              status: 'stopped' as const,
+              accumulatedDuration: session.accumulatedDuration + segmentDuration,
+              // Keep helper timer running if it was active
+            };
+          }
+          return session;
+        });
+        storageHelpers.setObject(storageKeys.ACTIVE_SESSIONS, updated);
+        return { activeSessions: updated };
+      });
     }
 
     // Initialize all consumables to 0

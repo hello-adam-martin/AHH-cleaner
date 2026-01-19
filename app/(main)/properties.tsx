@@ -128,15 +128,6 @@ export default function PropertiesScreen() {
   const handleQuickStart = async (propertyId: string) => {
     if (!authenticatedCleaner) return;
 
-    if (hasActiveTimer) {
-      showToast({
-        type: 'warning',
-        title: 'Timer already running',
-        message: 'Stop your current timer first',
-      });
-      return;
-    }
-
     // Find the property to create snapshot
     const property = properties.find((p) => p.id === propertyId);
     if (!property) return;
@@ -406,7 +397,7 @@ export default function PropertiesScreen() {
               key={item.id}
               property={item}
               onQuickStart={handleQuickStart}
-              canQuickStart={!hasActiveTimer}
+              canQuickStart={true}
             />
           ))
         ) : (
@@ -430,7 +421,7 @@ export default function PropertiesScreen() {
                 key={item.id}
                 property={item}
                 onQuickStart={handleQuickStart}
-                canQuickStart={!hasActiveTimer}
+                canQuickStart={true}
               />
             ))}
           </View>
