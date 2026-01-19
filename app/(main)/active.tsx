@@ -167,11 +167,23 @@ export default function ActiveCleaningScreen() {
 
     setIsCompleting(true);
 
+    // Prefer property snapshot for display name (captured at session start)
+    const displayName = session.propertySnapshot?.name || property.name;
+
     // Store the summary before completing (session will be removed after completion)
     const summaryData = {
-      propertyName: property.name,
+      propertyName: displayName,
       totalTime: elapsedTime + helperElapsedTime,
     };
+
+    // Validate property ID matches snapshot if available
+    if (session.propertySnapshot && session.propertyId !== session.propertySnapshot.id) {
+      console.error('Property ID mismatch detected:', {
+        sessionPropertyId: session.propertyId,
+        snapshotId: session.propertySnapshot.id,
+      });
+      // Continue with snapshot data for sync integrity
+    }
 
     try {
       // Complete the session (this stops the timer)
@@ -179,6 +191,7 @@ export default function ActiveCleaningScreen() {
 
       if (completedSession) {
         // Add to history (this will sync to Airtable)
+        // historyStore will use session.propertySnapshot for sync if available
         await addCompletedSession(completedSession, property, authenticatedCleaner);
 
         // Haptic feedback

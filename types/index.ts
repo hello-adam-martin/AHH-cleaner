@@ -46,6 +46,15 @@ export interface Consumables {
   [key: string]: number; // consumable item id -> quantity
 }
 
+// Immutable snapshot of property data captured at session start
+// This ensures session data integrity even if properties list changes
+export interface PropertySnapshot {
+  id: string;           // Booking ID for Airtable sync
+  name: string;         // Property name at session start
+  address: string;      // Address at session start
+  isBlocked?: boolean;  // Whether this was a blocked date
+}
+
 export interface CleaningSession {
   id: string;
   propertyId: string;
@@ -60,6 +69,9 @@ export interface CleaningSession {
   helperStartTime?: number; // When helper timer was started
   helperAccumulatedDuration: number; // Time accumulated from previous stop/starts
   helperActive: boolean; // Whether helper timer is currently running
+  // Property snapshot - captured at session start for data integrity
+  propertySnapshot?: PropertySnapshot;
+  sessionDate?: string; // ISO date (YYYY-MM-DD) when session was created
 }
 
 export interface PropertyWithStatus extends Property {

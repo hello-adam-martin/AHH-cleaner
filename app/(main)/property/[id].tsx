@@ -8,6 +8,7 @@ import { CleanerBadge } from '@/components/CleanerBadge';
 import { getTimeUntil, formatTime, formatCheckinDate, formatHoursAndMinutes } from '@/utils/time';
 import { theme } from '@/constants/theme';
 import * as Haptics from 'expo-haptics';
+import type { PropertySnapshot } from '@/types';
 
 export default function PropertyDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -39,7 +40,14 @@ export default function PropertyDetailsScreen() {
     } catch (e) {
       // Haptics not available on web
     }
-    startSession(id, authenticatedCleaner.id);
+    // Capture property snapshot at session start for data integrity
+    const propertySnapshot: PropertySnapshot = {
+      id: property.id,
+      name: property.name,
+      address: property.address,
+      isBlocked: property.isBlocked,
+    };
+    startSession(id, authenticatedCleaner.id, propertySnapshot);
     router.push('/(main)/active');
   };
 

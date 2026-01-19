@@ -1,11 +1,11 @@
 import { create } from 'zustand';
-import type { CleaningSession, Consumables } from '@/types';
+import type { CleaningSession, Consumables, PropertySnapshot } from '@/types';
 import { storageHelpers, storageKeys } from '@/services/storage';
 import { consumableItems } from '@/data/consumables';
 
 interface SessionState {
   activeSessions: CleaningSession[];
-  startSession: (propertyId: string, cleanerId: string) => CleaningSession | null;
+  startSession: (propertyId: string, cleanerId: string, propertySnapshot: PropertySnapshot) => CleaningSession | null;
   stopSession: (sessionId: string) => void;
   restartSession: (sessionId: string) => void;
   updateSessionTime: (sessionId: string, startTime: number, endTime: number) => void;
@@ -26,7 +26,7 @@ interface SessionState {
 export const useSessionStore = create<SessionState>((set, get) => ({
   activeSessions: [],
 
-  startSession: (propertyId, cleanerId) => {
+  startSession: (propertyId, cleanerId, propertySnapshot) => {
     // Check if cleaner already has an ACTIVE timer running
     const existingActive = get().activeSessions.find(
       (s) => s.cleanerId === cleanerId && s.status === 'active'
@@ -53,6 +53,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       // Initialize helper fields
       helperAccumulatedDuration: 0,
       helperActive: false,
+      // Store property snapshot for data integrity
+      propertySnapshot,
+      sessionDate: new Date().toISOString().split('T')[0],
     };
 
     set((state) => {
@@ -301,7 +304,26 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   initializeFromStorage: () => {
     const activeSessions =
       storageHelpers.getObject<CleaningSession[]>(storageKeys.ACTIVE_SESSIONS) || [];
-    set({ activeSessions });
+
+    // Migrate sessions that don't have sessionDate (backward compatibility)
+    let needsSave = false;
+    const migratedSessions = activeSessions.map(session => {
+      if (!session.sessionDate) {
+        needsSave = true;
+        return {
+          ...session,
+          sessionDate: new Date(session.startTime).toISOString().split('T')[0],
+        };
+      }
+      return session;
+    });
+
+    // Save migrated sessions if any were changed
+    if (needsSave) {
+      storageHelpers.setObject(storageKeys.ACTIVE_SESSIONS, migratedSessions);
+    }
+
+    set({ activeSessions: migratedSessions });
   },
 
   reset: () => {

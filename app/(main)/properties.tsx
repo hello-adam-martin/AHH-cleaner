@@ -8,7 +8,7 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import { PropertyCard } from '@/components/PropertyCard';
 import { CleanerBadge } from '@/components/CleanerBadge';
-import type { PropertyWithStatus } from '@/types';
+import type { PropertyWithStatus, PropertySnapshot } from '@/types';
 import { PropertyStatus } from '@/types';
 import { theme } from '@/constants/theme';
 import { fetchTodaysCheckouts, isAirtableConfigured } from '@/services/backendApiService';
@@ -137,13 +137,24 @@ export default function PropertiesScreen() {
       return;
     }
 
+    // Find the property to create snapshot
+    const property = properties.find((p) => p.id === propertyId);
+    if (!property) return;
+
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch (e) {
       // Haptics not available on web
     }
 
-    startSession(propertyId, authenticatedCleaner.id);
+    // Capture property snapshot at session start for data integrity
+    const propertySnapshot: PropertySnapshot = {
+      id: property.id,
+      name: property.name,
+      address: property.address,
+      isBlocked: property.isBlocked,
+    };
+    startSession(propertyId, authenticatedCleaner.id, propertySnapshot);
     showToast({
       type: 'success',
       title: 'Timer started!',

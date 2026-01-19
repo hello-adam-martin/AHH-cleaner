@@ -34,17 +34,38 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
   addCompletedSession: async (session, property, cleaner) => {
     if (!session.endTime) return;
 
+    // Use property snapshot for data integrity if available
+    // This ensures we sync to the correct booking even if properties list has changed
+    const snapshotProperty = session.propertySnapshot
+      ? {
+          ...property,
+          id: session.propertySnapshot.id,
+          name: session.propertySnapshot.name,
+          address: session.propertySnapshot.address,
+          isBlocked: session.propertySnapshot.isBlocked,
+        }
+      : property;
+
+    // Validate property ID consistency
+    if (session.propertySnapshot && session.propertyId !== session.propertySnapshot.id) {
+      console.warn('Property ID mismatch - using snapshot for sync:', {
+        sessionPropertyId: session.propertyId,
+        snapshotId: session.propertySnapshot.id,
+        passedPropertyId: property.id,
+      });
+    }
+
     const completedSession: CompletedSession = {
       ...session,
       endTime: session.endTime,
-      property,
+      property: snapshotProperty, // Use snapshot-based property for sync
       cleaner,
       duration: session.accumulatedDuration + session.helperAccumulatedDuration,
     };
 
     // Try to sync to Airtable if configured
     if (isAirtableConfigured()) {
-      console.log(`Syncing session ${session.id} to Airtable...`);
+      console.log(`Syncing session ${session.id} to Airtable (booking ID: ${snapshotProperty.id})...`);
       const result = await updateBookingWithCleaningData(completedSession);
 
       if (result.success) {
