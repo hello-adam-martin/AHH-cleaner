@@ -75,6 +75,15 @@ export default function MainLayout() {
         }}
       />
       <Tabs.Screen
+        name="report"
+        options={{
+          title: 'Report',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="alert-circle-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="property/[id]"
         options={{
           href: null, // Hide from tab bar

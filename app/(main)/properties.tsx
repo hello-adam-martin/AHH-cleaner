@@ -377,22 +377,6 @@ export default function PropertiesScreen() {
         </ScrollView>
       </View>
 
-      {/* Quick Actions */}
-      <View style={styles.quickActionsContainer}>
-        <TouchableOpacity
-          style={styles.quickActionButton}
-          onPress={() => router.push('/(main)/lost-property/report')}
-        >
-          <Text style={styles.quickActionText}>Report Lost Property</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.quickActionButton, styles.quickActionMaintenance]}
-          onPress={() => router.push('/(main)/maintenance/report')}
-        >
-          <Text style={[styles.quickActionText, styles.quickActionMaintenanceText]}>Report Maintenance</Text>
-        </TouchableOpacity>
-      </View>
-
       <ScrollView
         contentContainerStyle={styles.listContent}
         refreshControl={
@@ -619,34 +603,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Nunito_700Bold',
     color: '#666',
-  },
-  quickActionsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  quickActionButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#666',
-    alignItems: 'center',
-  },
-  quickActionMaintenance: {
-    borderColor: '#FF9800',
-  },
-  quickActionText: {
-    fontSize: 13,
-    fontFamily: 'Nunito_600SemiBold',
-    color: '#666',
-  },
-  quickActionMaintenanceText: {
-    color: '#FF9800',
   },
 });
