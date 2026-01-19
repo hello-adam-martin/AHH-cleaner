@@ -11,6 +11,7 @@ import { useTimer } from '@/hooks/useTimer';
 import { useHelperTimer } from '@/hooks/useHelperTimer';
 import { theme } from '@/constants/theme';
 import { getCategoriesWithItems, consumableItems, getFavoriteConsumables } from '@/data/consumables';
+import { formatCheckinDate } from '@/utils/time';
 import * as Haptics from 'expo-haptics';
 
 export default function ActiveCleaningScreen() {
@@ -353,6 +354,20 @@ export default function ActiveCleaningScreen() {
           <View style={styles.propertyHeaderLeft}>
             <Text style={styles.propertyName}>{property.name}</Text>
             <Text style={styles.address}>{property.address}</Text>
+            <View style={styles.propertyMeta}>
+              {property.guestCount !== undefined && property.guestCount > 0 && (
+                <View style={styles.guestCountBadge}>
+                  <Text style={styles.guestCountText}>
+                    {property.guestCount} {property.guestCount === 1 ? 'guest' : 'guests'}
+                  </Text>
+                </View>
+              )}
+              {property.nextCheckinDate && (
+                <Text style={styles.checkinDate}>
+                  Check-in: {formatCheckinDate(property.nextCheckinDate)}
+                </Text>
+              )}
+            </View>
           </View>
           {authenticatedCleaner && (
             <CleanerBadge cleaner={authenticatedCleaner} size="small" />
@@ -817,6 +832,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'Nunito_400Regular',
     color: '#666',
+  },
+  propertyMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 8,
+  },
+  guestCountBadge: {
+    backgroundColor: '#E3F2FD',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+  },
+  guestCountText: {
+    fontSize: 12,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#1976D2',
+  },
+  checkinDate: {
+    fontSize: 12,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#FF5722',
   },
   timersCard: {
     backgroundColor: '#FFFFFF',

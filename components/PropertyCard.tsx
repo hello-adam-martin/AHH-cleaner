@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, GestureResponderEvent } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import type { PropertyWithStatus } from '@/types';
 import { PropertyStatus } from '@/types';
@@ -14,14 +14,18 @@ interface PropertyCardProps {
 
 export function PropertyCard({ property, onQuickStart, canQuickStart = true }: PropertyCardProps) {
   const handlePress = () => {
-    router.push(`/(main)/property/${property.id}`);
-  };
-
-  const handleQuickStart = (e: GestureResponderEvent) => {
-    e.stopPropagation();
-    if (onQuickStart) {
+    // Pending: start cleaning immediately
+    if (property.status === PropertyStatus.PENDING && onQuickStart && canQuickStart) {
       onQuickStart(property.id);
+      return;
     }
+    // In Progress: go to active screen
+    if (property.status === PropertyStatus.IN_PROGRESS) {
+      router.push('/(main)/active');
+      return;
+    }
+    // Completed: go to property details
+    router.push(`/(main)/property/${property.id}`);
   };
 
   const getStatusColor = () => {
@@ -81,15 +85,6 @@ export function PropertyCard({ property, onQuickStart, canQuickStart = true }: P
             <View style={styles.syncedBadge}>
               <Text style={styles.syncedText}>Synced</Text>
             </View>
-          )}
-          {property.status === PropertyStatus.PENDING && onQuickStart && canQuickStart && (
-            <TouchableOpacity
-              style={styles.quickStartButton}
-              onPress={handleQuickStart}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.quickStartText}>Start</Text>
-            </TouchableOpacity>
           )}
           {property.status === PropertyStatus.IN_PROGRESS && (
             <View style={[styles.statusBadge, { backgroundColor: getStatusColor() }]}>
