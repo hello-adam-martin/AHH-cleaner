@@ -86,6 +86,18 @@ export default function MainLayout() {
           href: null, // Hide from tab bar
         }}
       />
+      <Tabs.Screen
+        name="lost-property/report"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="maintenance/report"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
     </Tabs>
   );
 }
