@@ -6,7 +6,6 @@ import { usePropertiesStore } from '@/stores/propertiesStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useHistoryStore } from '@/stores/historyStore';
 import { TimerDisplay } from '@/components/TimerDisplay';
-import { ConsumableCounter } from '@/components/ConsumableCounter';
 import { CleanerBadge } from '@/components/CleanerBadge';
 import { useTimer } from '@/hooks/useTimer';
 import { useHelperTimer } from '@/hooks/useHelperTimer';
@@ -585,15 +584,26 @@ export default function ActiveCleaningScreen() {
                     <Text style={styles.chevron}>{isExpanded ? '▼' : '▶'}</Text>
                   </TouchableOpacity>
                   {isExpanded && (
-                    <View style={styles.consumablesGrid}>
+                    <View style={styles.categoryItemsGrid}>
                       {category.items.map((item) => (
-                        <ConsumableCounter
-                          key={item.id}
-                          label={item.name}
-                          value={session?.consumables[item.id] || 0}
-                          onIncrement={() => handleUpdateConsumable(item.id, (session?.consumables[item.id] || 0) + 1)}
-                          onDecrement={() => handleUpdateConsumable(item.id, Math.max(0, (session?.consumables[item.id] || 0) - 1))}
-                        />
+                        <View key={item.id} style={styles.quickAddItem}>
+                          <Text style={styles.quickAddLabel}>{item.name}</Text>
+                          <View style={styles.quickAddControls}>
+                            <TouchableOpacity
+                              style={styles.quickAddBtn}
+                              onPress={() => handleUpdateConsumable(item.id, Math.max(0, (session?.consumables[item.id] || 0) - 1))}
+                            >
+                              <Text style={styles.quickAddBtnText}>-</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.quickAddValue}>{session?.consumables[item.id] || 0}</Text>
+                            <TouchableOpacity
+                              style={[styles.quickAddBtn, styles.quickAddBtnPlus]}
+                              onPress={() => handleUpdateConsumable(item.id, (session?.consumables[item.id] || 0) + 1)}
+                            >
+                              <Text style={[styles.quickAddBtnText, styles.quickAddBtnTextPlus]}>+</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
                       ))}
                     </View>
                   )}
@@ -1478,6 +1488,11 @@ const styles = StyleSheet.create({
   },
   quickAddGrid: {
     gap: 12,
+  },
+  categoryItemsGrid: {
+    padding: 12,
+    paddingTop: 8,
+    gap: 8,
   },
   quickAddItem: {
     flexDirection: 'row',
