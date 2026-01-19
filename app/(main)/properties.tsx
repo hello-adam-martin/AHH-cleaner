@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, RefreshControl, ActivityIndicator, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, RefreshControl, ActivityIndicator, TextInput, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { useCleanerStore } from '@/stores/cleanerStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -16,12 +16,9 @@ import { storageHelpers, storageKeys } from '@/services/storage';
 import { showToast } from '@/stores/toastStore';
 import * as Haptics from 'expo-haptics';
 
-type StatusFilter = 'all' | 'pending' | 'in_progress' | 'completed';
-
 export default function PropertiesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const authenticatedCleaner = useAuthStore((state) => state.authenticatedCleaner);
   const logout = useAuthStore((state) => state.logout);
   const properties = usePropertiesStore((state) => state.properties);
@@ -222,7 +219,7 @@ export default function PropertiesScreen() {
   });
 
   // Apply search filter
-  const searchedProperties = useMemo(() => {
+  const filteredProperties = useMemo(() => {
     if (!searchQuery.trim()) return sortedProperties;
     const query = searchQuery.toLowerCase().trim();
     return sortedProperties.filter(
@@ -231,40 +228,6 @@ export default function PropertiesScreen() {
         p.address.toLowerCase().includes(query)
     );
   }, [sortedProperties, searchQuery]);
-
-  // Apply status filter
-  const filteredProperties = useMemo(() => {
-    if (statusFilter === 'all') return searchedProperties;
-    return searchedProperties.filter((p) => {
-      switch (statusFilter) {
-        case 'pending':
-          return p.status === PropertyStatus.PENDING;
-        case 'in_progress':
-          return p.status === PropertyStatus.IN_PROGRESS;
-        case 'completed':
-          return p.status === PropertyStatus.COMPLETED;
-        default:
-          return true;
-      }
-    });
-  }, [searchedProperties, statusFilter]);
-
-  // Get counts for filter chips
-  const getCountForStatus = (status: StatusFilter) => {
-    if (status === 'all') return searchedProperties.length;
-    return searchedProperties.filter((p) => {
-      switch (status) {
-        case 'pending':
-          return p.status === PropertyStatus.PENDING;
-        case 'in_progress':
-          return p.status === PropertyStatus.IN_PROGRESS;
-        case 'completed':
-          return p.status === PropertyStatus.COMPLETED;
-        default:
-          return true;
-      }
-    }).length;
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -345,40 +308,6 @@ export default function PropertiesScreen() {
         )}
       </View>
 
-      {/* Filter Chips */}
-      <View style={styles.filterChipsContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterChips}
-        >
-          {([
-            { key: 'all', label: 'All' },
-            { key: 'pending', label: 'Pending' },
-            { key: 'in_progress', label: 'In Progress' },
-            { key: 'completed', label: 'Completed' },
-          ] as const).map((filter) => (
-            <TouchableOpacity
-              key={filter.key}
-              style={[
-                styles.filterChip,
-                statusFilter === filter.key && styles.filterChipActive,
-              ]}
-              onPress={() => setStatusFilter(filter.key)}
-            >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  statusFilter === filter.key && styles.filterChipTextActive,
-                ]}
-              >
-                {filter.label} ({getCountForStatus(filter.key)})
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
       <ScrollView
         contentContainerStyle={styles.listContent}
         refreshControl={
@@ -403,8 +332,8 @@ export default function PropertiesScreen() {
         ) : (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
-              {searchQuery || statusFilter !== 'all'
-                ? 'No properties match your filters'
+              {searchQuery
+                ? 'No properties match your search'
                 : 'No properties scheduled for today'}
             </Text>
           </View>
@@ -566,34 +495,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Nunito_600SemiBold',
     color: '#666',
-  },
-  filterChipsContainer: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  filterChips: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  filterChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 20,
-  },
-  filterChipActive: {
-    backgroundColor: theme.colors.text,
-  },
-  filterChipText: {
-    fontSize: 14,
-    fontFamily: 'Nunito_600SemiBold',
-    color: '#666',
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
   },
   blockedSection: {
     marginTop: 24,
