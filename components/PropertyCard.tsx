@@ -98,25 +98,39 @@ export function PropertyCard({ property, onQuickStart, canQuickStart = true }: P
         </View>
       </View>
 
-      {property.nextCheckinDate && (
-        <View style={styles.timeInfo}>
-          <Text style={styles.timeLabel}>Next check-in:</Text>
-          <Text style={styles.timeValue}>{formatCheckinDate(property.nextCheckinDate)}</Text>
-        </View>
-      )}
-
-      {((!property.isBlocked && property.guestCount !== undefined && property.guestCount > 0) ||
-       (property.cleaningTime !== undefined && property.cleaningTime > 0) ||
-       (property.consumablesCost !== undefined && property.consumablesCost > 0)) ? (
-        <View style={styles.summarySection}>
-          {!property.isBlocked && property.guestCount !== undefined && property.guestCount > 0 && (
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryIcon}>👤</Text>
-              <Text style={styles.summaryText}>
+      {/* Booking Info */}
+      {!property.isBlocked && (property.guestCount || property.nextCheckinDate) && (
+        <View style={styles.bookingInfo}>
+          {property.guestCount !== undefined && property.guestCount > 0 && (
+            <View style={styles.bookingRow}>
+              <Text style={styles.bookingLabelOut}>OUT</Text>
+              <Text style={styles.bookingValue}>
                 {property.guestCount} {property.guestCount === 1 ? 'guest' : 'guests'}
               </Text>
             </View>
           )}
+          {property.nextCheckinDate && (
+            <View style={styles.bookingRow}>
+              <Text style={styles.bookingLabelIn}>IN</Text>
+              <Text style={styles.bookingValue}>
+                {property.nextGuestCount ? `${property.nextGuestCount} ${property.nextGuestCount === 1 ? 'guest' : 'guests'}` : 'TBC'}
+                {property.nextCheckoutDate && property.nextCheckinDate && (() => {
+                  const checkin = new Date(property.nextCheckinDate);
+                  const checkout = new Date(property.nextCheckoutDate);
+                  const nights = Math.round((checkout.getTime() - checkin.getTime()) / (1000 * 60 * 60 * 24));
+                  return nights > 0 ? ` • ${nights}n` : '';
+                })()}
+              </Text>
+              <Text style={styles.checkinTime}>{formatCheckinDate(property.nextCheckinDate)}</Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Cleaning stats (only show if already cleaned) */}
+      {((property.cleaningTime !== undefined && property.cleaningTime > 0) ||
+       (property.consumablesCost !== undefined && property.consumablesCost > 0)) ? (
+        <View style={styles.summarySection}>
           {property.cleaningTime !== undefined && property.cleaningTime > 0 && (
             <View style={styles.summaryItem}>
               <Text style={styles.summaryIcon}>⏱</Text>
@@ -257,6 +271,47 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Nunito_600SemiBold',
     color: '#FF5722',
+  },
+  bookingInfo: {
+    marginBottom: 12,
+  },
+  bookingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  bookingLabelOut: {
+    backgroundColor: '#EF5350',
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontFamily: 'Nunito_700Bold',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginRight: 8,
+    overflow: 'hidden',
+  },
+  bookingLabelIn: {
+    backgroundColor: '#4CAF50',
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontFamily: 'Nunito_700Bold',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginRight: 8,
+    overflow: 'hidden',
+  },
+  bookingValue: {
+    fontSize: 14,
+    fontFamily: 'Nunito_600SemiBold',
+    color: '#333',
+  },
+  checkinTime: {
+    fontSize: 13,
+    fontFamily: 'Nunito_400Regular',
+    color: '#666',
+    marginLeft: 'auto',
   },
   summarySection: {
     flexDirection: 'row',
