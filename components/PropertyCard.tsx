@@ -2,7 +2,6 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import type { PropertyWithStatus } from '@/types';
 import { PropertyStatus } from '@/types';
-import { CleanerBadge } from './CleanerBadge';
 import { formatCheckinDate, formatHoursAndMinutes } from '@/utils/time';
 import { theme } from '@/constants/theme';
 
@@ -142,20 +141,6 @@ export function PropertyCard({ property, onQuickStart, canQuickStart = true }: P
           {property.notes}
         </Text>
       )}
-
-      {property.activeCleaners.length > 0 && (
-        <View style={styles.cleanersSection}>
-          <Text style={styles.cleanersLabel}>Cleaning now:</Text>
-          <View style={styles.cleanersList}>
-            {property.activeCleaners.map((cleaner) => (
-              <View key={cleaner.id} style={styles.cleanerItem}>
-                <CleanerBadge cleaner={cleaner} size="small" />
-                <Text style={styles.cleanerName}>{cleaner.name}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
     </TouchableOpacity>
   );
 }
@@ -257,19 +242,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Nunito_600SemiBold',
     color: '#FFFFFF',
   },
-  quickStartButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-    minWidth: 60,
-    alignItems: 'center',
-  },
-  quickStartText: {
-    fontSize: 14,
-    fontFamily: 'Nunito_700Bold',
-    color: '#FFFFFF',
-  },
   timeInfo: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -310,36 +282,5 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 8,
     fontStyle: 'italic',
-  },
-  cleanersSection: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
-  },
-  cleanersLabel: {
-    fontSize: 12,
-    fontFamily: 'Nunito_600SemiBold',
-    color: '#666',
-    marginBottom: 8,
-  },
-  cleanersList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  cleanerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#F5F5F5',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  cleanerName: {
-    fontSize: 12,
-    fontFamily: 'Nunito_600SemiBold',
-    color: theme.colors.text,
   },
 });
