@@ -31,11 +31,13 @@ const CATEGORIES: MaintenanceCategory[] = [
 ];
 
 export default function ReportMaintenanceScreen() {
-  const { propertyId } = useLocalSearchParams<{ propertyId: string }>();
+  const { propertyId } = useLocalSearchParams<{ propertyId?: string }>();
   const properties = usePropertiesStore((state) => state.properties);
   const addMaintenanceIssue = useMaintenanceStore((state) => state.addMaintenanceIssue);
   const isSyncing = useMaintenanceStore((state) => state.isSyncing);
 
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(propertyId || null);
+  const [showPropertyPicker, setShowPropertyPicker] = useState(false);
   const [priority, setPriority] = useState<MaintenancePriority>('normal');
   const [category, setCategory] = useState<MaintenanceCategory | null>(null);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
@@ -49,6 +51,8 @@ export default function ReportMaintenanceScreen() {
   // Reset form when screen comes into focus
   useFocusEffect(
     useCallback(() => {
+      setSelectedPropertyId(propertyId || null);
+      setShowPropertyPicker(false);
       setPriority('normal');
       setCategory(null);
       setShowCategoryPicker(false);
@@ -59,14 +63,10 @@ export default function ReportMaintenanceScreen() {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    }, [])
+    }, [propertyId])
   );
 
-  const property = properties.find((p) => p.id === propertyId);
-
-  if (!property) {
-    return null;
-  }
+  const property = properties.find((p) => p.id === selectedPropertyId);
 
   const compressImage = (file: File, maxWidth: number, quality: number): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -127,6 +127,10 @@ export default function ReportMaintenanceScreen() {
   };
 
   const handleSubmit = async () => {
+    if (!property) {
+      setError('Please select a property');
+      return;
+    }
     if (!category) {
       setError('Please select a category');
       return;
@@ -186,7 +190,7 @@ export default function ReportMaintenanceScreen() {
     );
   }
 
-  const isFormValid = category && description.trim() && !isSyncing;
+  const isFormValid = property && category && description.trim() && !isSyncing;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -199,9 +203,59 @@ export default function ReportMaintenanceScreen() {
       </View>
 
       <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.propertyInfo}>
-          <Text style={styles.propertyLabel}>Property</Text>
-          <Text style={styles.propertyName}>{property.name}</Text>
+        <View style={styles.formSection}>
+          <Text style={styles.inputLabel}>Property *</Text>
+          {propertyId ? (
+            <View style={styles.propertyInfo}>
+              <Text style={styles.propertyName}>{property?.name}</Text>
+            </View>
+          ) : (
+            <>
+              <TouchableOpacity
+                style={styles.propertySelector}
+                onPress={() => setShowPropertyPicker(!showPropertyPicker)}
+              >
+                <Text
+                  style={[
+                    styles.propertySelectorText,
+                    !property && styles.propertySelectorPlaceholder,
+                  ]}
+                >
+                  {property ? property.name : 'Select a property...'}
+                </Text>
+                <Text style={styles.propertySelectorArrow}>
+                  {showPropertyPicker ? '▲' : '▼'}
+                </Text>
+              </TouchableOpacity>
+
+              {showPropertyPicker && (
+                <View style={styles.propertyList}>
+                  {properties.map((p) => (
+                    <TouchableOpacity
+                      key={p.id}
+                      style={[
+                        styles.propertyOption,
+                        selectedPropertyId === p.id && styles.propertyOptionSelected,
+                      ]}
+                      onPress={() => {
+                        setSelectedPropertyId(p.id);
+                        setShowPropertyPicker(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.propertyOptionText,
+                          selectedPropertyId === p.id && styles.propertyOptionTextSelected,
+                        ]}
+                      >
+                        {p.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </>
+          )}
         </View>
 
         {/* Priority Toggle */}
@@ -409,19 +463,60 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 20,
-  },
-  propertyLabel: {
-    fontSize: 12,
-    fontFamily: 'Nunito_600SemiBold',
-    color: '#999',
-    textTransform: 'uppercase',
-    marginBottom: 4,
   },
   propertyName: {
     fontSize: 18,
     fontFamily: 'Nunito_700Bold',
     color: theme.colors.text,
+  },
+  propertySelector: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  propertySelectorText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_400Regular',
+    color: theme.colors.text,
+  },
+  propertySelectorPlaceholder: {
+    color: '#999',
+  },
+  propertySelectorArrow: {
+    fontSize: 12,
+    color: '#666',
+  },
+  propertyList: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    overflow: 'hidden',
+    maxHeight: 250,
+  },
+  propertyOption: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  propertyOptionSelected: {
+    backgroundColor: theme.colors.primary + '15',
+  },
+  propertyOptionText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_400Regular',
+    color: theme.colors.text,
+  },
+  propertyOptionTextSelected: {
+    fontFamily: 'Nunito_700Bold',
+    color: theme.colors.primary,
   },
   formSection: {
     marginBottom: 20,

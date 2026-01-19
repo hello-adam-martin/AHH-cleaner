@@ -18,11 +18,13 @@ import { theme } from '@/constants/theme';
 import * as Haptics from 'expo-haptics';
 
 export default function ReportLostPropertyScreen() {
-  const { propertyId } = useLocalSearchParams<{ propertyId: string }>();
+  const { propertyId } = useLocalSearchParams<{ propertyId?: string }>();
   const properties = usePropertiesStore((state) => state.properties);
   const addLostProperty = useLostPropertyStore((state) => state.addLostProperty);
   const isSyncing = useLostPropertyStore((state) => state.isSyncing);
 
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(propertyId || null);
+  const [showPropertyPicker, setShowPropertyPicker] = useState(false);
   const [description, setDescription] = useState('');
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +35,8 @@ export default function ReportLostPropertyScreen() {
   // Reset form when screen comes into focus
   useFocusEffect(
     useCallback(() => {
+      setSelectedPropertyId(propertyId || null);
+      setShowPropertyPicker(false);
       setDescription('');
       setPhotoBase64(null);
       setError(null);
@@ -40,14 +44,10 @@ export default function ReportLostPropertyScreen() {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    }, [])
+    }, [propertyId])
   );
 
-  const property = properties.find((p) => p.id === propertyId);
-
-  if (!property) {
-    return null;
-  }
+  const property = properties.find((p) => p.id === selectedPropertyId);
 
   const compressImage = (file: File, maxWidth: number, quality: number): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -108,6 +108,10 @@ export default function ReportLostPropertyScreen() {
   };
 
   const handleSubmit = async () => {
+    if (!property) {
+      setError('Please select a property');
+      return;
+    }
     if (!description.trim()) {
       setError('Please enter a description of the item');
       return;
@@ -172,9 +176,59 @@ export default function ReportLostPropertyScreen() {
       </View>
 
       <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.propertyInfo}>
-          <Text style={styles.propertyLabel}>Property</Text>
-          <Text style={styles.propertyName}>{property.name}</Text>
+        <View style={styles.formSection}>
+          <Text style={styles.inputLabel}>Property *</Text>
+          {propertyId ? (
+            <View style={styles.propertyInfo}>
+              <Text style={styles.propertyName}>{property?.name}</Text>
+            </View>
+          ) : (
+            <>
+              <TouchableOpacity
+                style={styles.propertySelector}
+                onPress={() => setShowPropertyPicker(!showPropertyPicker)}
+              >
+                <Text
+                  style={[
+                    styles.propertySelectorText,
+                    !property && styles.propertySelectorPlaceholder,
+                  ]}
+                >
+                  {property ? property.name : 'Select a property...'}
+                </Text>
+                <Text style={styles.propertySelectorArrow}>
+                  {showPropertyPicker ? '▲' : '▼'}
+                </Text>
+              </TouchableOpacity>
+
+              {showPropertyPicker && (
+                <View style={styles.propertyList}>
+                  {properties.map((p) => (
+                    <TouchableOpacity
+                      key={p.id}
+                      style={[
+                        styles.propertyOption,
+                        selectedPropertyId === p.id && styles.propertyOptionSelected,
+                      ]}
+                      onPress={() => {
+                        setSelectedPropertyId(p.id);
+                        setShowPropertyPicker(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.propertyOptionText,
+                          selectedPropertyId === p.id && styles.propertyOptionTextSelected,
+                        ]}
+                      >
+                        {p.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </>
+          )}
         </View>
 
         <View style={styles.formSection}>
@@ -241,10 +295,10 @@ export default function ReportLostPropertyScreen() {
         <TouchableOpacity
           style={[
             styles.submitButton,
-            (!description.trim() || isSyncing) && styles.disabledButton,
+            (!property || !description.trim() || isSyncing) && styles.disabledButton,
           ]}
           onPress={handleSubmit}
-          disabled={!description.trim() || isSyncing}
+          disabled={!property || !description.trim() || isSyncing}
         >
           {isSyncing ? (
             <ActivityIndicator color="#FFFFFF" />
@@ -296,19 +350,60 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 20,
-  },
-  propertyLabel: {
-    fontSize: 12,
-    fontFamily: 'Nunito_600SemiBold',
-    color: '#999',
-    textTransform: 'uppercase',
-    marginBottom: 4,
   },
   propertyName: {
     fontSize: 18,
     fontFamily: 'Nunito_700Bold',
     color: theme.colors.text,
+  },
+  propertySelector: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  propertySelectorText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_400Regular',
+    color: theme.colors.text,
+  },
+  propertySelectorPlaceholder: {
+    color: '#999',
+  },
+  propertySelectorArrow: {
+    fontSize: 12,
+    color: '#666',
+  },
+  propertyList: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    overflow: 'hidden',
+    maxHeight: 250,
+  },
+  propertyOption: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  propertyOptionSelected: {
+    backgroundColor: theme.colors.primary + '15',
+  },
+  propertyOptionText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_400Regular',
+    color: theme.colors.text,
+  },
+  propertyOptionTextSelected: {
+    fontFamily: 'Nunito_700Bold',
+    color: theme.colors.primary,
   },
   formSection: {
     marginBottom: 20,
