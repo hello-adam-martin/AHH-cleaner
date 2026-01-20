@@ -59,7 +59,7 @@ export default function ActiveCleaningScreen() {
   // Completion modal state - single combined modal
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
-  const [propertyReady, setPropertyReady] = useState(true); // Default to ready for guests
+  const [propertyReady, setPropertyReady] = useState<boolean | null>(null); // Must be selected before completing
 
   // Stop confirmation modal state
   const [showStopConfirmModal, setShowStopConfirmModal] = useState(false);
@@ -151,7 +151,8 @@ export default function ActiveCleaningScreen() {
       } catch (e) {
         // Haptics not available on web
       }
-      // Show combined completion modal
+      // Reset property ready selection and show modal
+      setPropertyReady(null);
       setShowCompleteModal(true);
     }
   };
@@ -668,22 +669,37 @@ export default function ActiveCleaningScreen() {
           </ScrollView>
 
           <View style={styles.consumablesModalFooter}>
-            {/* Property Ready Toggle */}
-            <TouchableOpacity
-              style={styles.propertyReadyToggle}
-              onPress={() => setPropertyReady(!propertyReady)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.checkbox, propertyReady && styles.checkboxChecked]}>
-                {propertyReady && <Text style={styles.checkboxCheck}>✓</Text>}
+            {/* Property Ready Selection */}
+            <View style={styles.propertyReadySection}>
+              <Text style={styles.propertyReadyQuestion}>Is the property ready for guests?</Text>
+              <View style={styles.radioGroup}>
+                <TouchableOpacity
+                  style={[styles.radioOption, propertyReady === true && styles.radioOptionSelected]}
+                  onPress={() => setPropertyReady(true)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.radioCircle, propertyReady === true && styles.radioCircleSelected]}>
+                    {propertyReady === true && <View style={styles.radioInner} />}
+                  </View>
+                  <Text style={[styles.radioLabel, propertyReady === true && styles.radioLabelSelected]}>Yes</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.radioOption, propertyReady === false && styles.radioOptionSelected]}
+                  onPress={() => setPropertyReady(false)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.radioCircle, propertyReady === false && styles.radioCircleSelected]}>
+                    {propertyReady === false && <View style={styles.radioInner} />}
+                  </View>
+                  <Text style={[styles.radioLabel, propertyReady === false && styles.radioLabelSelected]}>No</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.propertyReadyLabel}>Property ready for guests</Text>
-            </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
-              style={[styles.completeModalBtn, isCompleting && styles.modalConfirmBtnDisabled]}
+              style={[styles.completeModalBtn, (isCompleting || propertyReady === null) && styles.modalConfirmBtnDisabled]}
               onPress={handleConfirmComplete}
-              disabled={isCompleting}
+              disabled={isCompleting || propertyReady === null}
             >
               {isCompleting ? (
                 <View style={styles.modalBtnContent}>
@@ -1665,35 +1681,61 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
   },
-  propertyReadyToggle: {
+  propertyReadySection: {
+    marginBottom: 16,
+  },
+  propertyReadyQuestion: {
+    fontSize: 16,
+    fontFamily: 'Nunito_700Bold',
+    color: theme.colors.text,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  radioGroup: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  radioOption: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-    marginBottom: 12,
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    backgroundColor: '#FFFFFF',
   },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
+  radioOptionSelected: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#E8F5E9',
+  },
+  radioCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
     borderColor: '#CCC',
-    marginRight: 12,
+    marginRight: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  checkboxChecked: {
-    backgroundColor: '#4CAF50',
+  radioCircleSelected: {
     borderColor: '#4CAF50',
   },
-  checkboxCheck: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#4CAF50',
   },
-  propertyReadyLabel: {
+  radioLabel: {
     fontSize: 16,
     fontFamily: 'Nunito_600SemiBold',
-    color: theme.colors.text,
+    color: '#666',
+  },
+  radioLabelSelected: {
+    color: '#4CAF50',
   },
 });
