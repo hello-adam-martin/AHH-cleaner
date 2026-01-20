@@ -192,12 +192,17 @@ export default function ActiveCleaningScreen() {
         // Update property status if marked as ready
         if (propertyReady) {
           const propertyRecordId = session.propertySnapshot?.propertyRecordId || property.propertyRecordId;
+          console.log('Property ready selected, propertyRecordId:', propertyRecordId);
+          console.log('  - from snapshot:', session.propertySnapshot?.propertyRecordId);
+          console.log('  - from property:', property.propertyRecordId);
           if (propertyRecordId) {
             try {
               await updatePropertyStatus(propertyRecordId, 'Ready for guests');
             } catch (statusError) {
               console.error('Error updating property status:', statusError);
             }
+          } else {
+            console.warn('Cannot update property status - no propertyRecordId available');
           }
         }
 
