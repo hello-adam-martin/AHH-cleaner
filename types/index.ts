@@ -13,6 +13,7 @@ export interface Cleaner {
 
 export interface Property {
   id: string;
+  propertyRecordId?: string; // Airtable Property record ID (for updating status)
   name: string;
   address: string;
   checkoutDate?: string;
@@ -52,6 +53,7 @@ export interface Consumables {
 // This ensures session data integrity even if properties list changes
 export interface PropertySnapshot {
   id: string;           // Booking ID for Airtable sync
+  propertyRecordId?: string; // Property record ID for status updates
   name: string;         // Property name at session start
   address: string;      // Address at session start
   isBlocked?: boolean;  // Whether this was a blocked date

@@ -12,7 +12,7 @@ import { useHelperTimer } from '@/hooks/useHelperTimer';
 import { theme } from '@/constants/theme';
 import { getCategoriesWithItems, consumableItems, getFavoriteConsumables } from '@/data/consumables';
 import { formatCheckinDate } from '@/utils/time';
-import { fetchTodaysCheckouts } from '@/services/backendApiService';
+import { fetchTodaysCheckouts, updatePropertyStatus } from '@/services/backendApiService';
 import * as Haptics from 'expo-haptics';
 
 export default function ActiveCleaningScreen() {
@@ -59,6 +59,7 @@ export default function ActiveCleaningScreen() {
   // Completion modal state - single combined modal
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [propertyReady, setPropertyReady] = useState(true); // Default to ready for guests
 
   // Stop confirmation modal state
   const [showStopConfirmModal, setShowStopConfirmModal] = useState(false);
@@ -186,6 +187,18 @@ export default function ActiveCleaningScreen() {
         // Add to history (this will sync to Airtable)
         // historyStore will use session.propertySnapshot for sync if available
         await addCompletedSession(completedSession, property, authenticatedCleaner);
+
+        // Update property status if marked as ready
+        if (propertyReady) {
+          const propertyRecordId = session.propertySnapshot?.propertyRecordId || property.propertyRecordId;
+          if (propertyRecordId) {
+            try {
+              await updatePropertyStatus(propertyRecordId, 'Ready for guests');
+            } catch (statusError) {
+              console.error('Error updating property status:', statusError);
+            }
+          }
+        }
 
         // Haptic feedback
         try {
@@ -655,6 +668,18 @@ export default function ActiveCleaningScreen() {
           </ScrollView>
 
           <View style={styles.consumablesModalFooter}>
+            {/* Property Ready Toggle */}
+            <TouchableOpacity
+              style={styles.propertyReadyToggle}
+              onPress={() => setPropertyReady(!propertyReady)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, propertyReady && styles.checkboxChecked]}>
+                {propertyReady && <Text style={styles.checkboxCheck}>✓</Text>}
+              </View>
+              <Text style={styles.propertyReadyLabel}>Property ready for guests</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={[styles.completeModalBtn, isCompleting && styles.modalConfirmBtnDisabled]}
               onPress={handleConfirmComplete}
@@ -1639,5 +1664,36 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
+  },
+  propertyReadyToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    marginBottom: 12,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#CCC',
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  checkboxCheck: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  propertyReadyLabel: {
+    fontSize: 16,
+    fontFamily: 'Nunito_600SemiBold',
+    color: theme.colors.text,
   },
 });

@@ -138,6 +138,7 @@ export default function PropertiesScreen() {
     // Capture property snapshot at session start for data integrity
     const propertySnapshot: PropertySnapshot = {
       id: property.id,
+      propertyRecordId: property.propertyRecordId,
       name: property.name,
       address: property.address,
       isBlocked: property.isBlocked,

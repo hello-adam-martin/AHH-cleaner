@@ -114,6 +114,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       let propertyName = fields['Property Name'] || fields[PROPERTY_LINK_FIELD];
       let propertyAddress = fields['Address (from Property)'] || '';
+      let propertyRecordId: string | undefined;
       let nextBookingInfo: NextBookingInfo | undefined;
 
       const propertyId = fields['Property ID'] as string;
@@ -121,7 +122,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // If property is linked, fetch details from Properties table
       if (Array.isArray(fields[PROPERTY_LINK_FIELD]) && fields[PROPERTY_LINK_FIELD][0]) {
         try {
-          const propertyRecordId = fields[PROPERTY_LINK_FIELD][0];
+          propertyRecordId = fields[PROPERTY_LINK_FIELD][0];
           const propertyRecord = await base(PROPERTIES_TABLE).find(propertyRecordId);
           propertyName = propertyRecord.fields['Name'] || propertyName;
           propertyAddress = propertyRecord.fields['Address'] || propertyAddress;
@@ -148,6 +149,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       properties.push({
         id: record.id,
+        propertyRecordId,
         name: String(propertyName || 'Unknown Property'),
         address: String(propertyAddress || ''),
         checkoutDate,
@@ -179,11 +181,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       let propertyName = 'Unknown Property';
       let propertyAddress = '';
+      let propertyRecordId: string | undefined;
 
       // Fetch property details from linked property
       if (Array.isArray(fields['Property']) && fields['Property'][0]) {
         try {
-          const propertyRecordId = fields['Property'][0];
+          propertyRecordId = fields['Property'][0];
           const propertyRecord = await base(PROPERTIES_TABLE).find(propertyRecordId);
           propertyName = (propertyRecord.fields['Name'] as string) || propertyName;
           propertyAddress = (propertyRecord.fields['Address'] as string) || propertyAddress;
@@ -199,6 +202,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       properties.push({
         id: record.id,
+        propertyRecordId,
         name: String(propertyName),
         address: String(propertyAddress),
         checkoutDate: fields['To'] as string,

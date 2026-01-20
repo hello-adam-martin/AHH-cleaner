@@ -189,3 +189,38 @@ export async function syncMaintenanceIssue(
 
   return { success: false, error: 'Failed to connect to backend API' };
 }
+
+/**
+ * Update property status in Airtable
+ * @param propertyRecordId The Airtable Property record ID
+ * @param status The new status ('Ready for guests' or 'Needs Cleaning')
+ * @returns Success status and optional error message
+ */
+export async function updatePropertyStatus(
+  propertyRecordId: string,
+  status: 'Ready for guests' | 'Needs Cleaning'
+): Promise<{ success: boolean; error?: string }> {
+  console.log(`Updating property ${propertyRecordId} status to "${status}"...`);
+
+  const result = await fetchFromApi<{ success: boolean; error?: string }>(
+    '/property-status',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        propertyRecordId,
+        status,
+      }),
+    }
+  );
+
+  if (result) {
+    if (result.success) {
+      console.log('  -> Successfully updated property status');
+    } else {
+      console.error('  -> Failed to update property status:', result.error);
+    }
+    return result;
+  }
+
+  return { success: false, error: 'Failed to connect to backend API' };
+}
