@@ -12,11 +12,13 @@ import { useHelperTimer } from '@/hooks/useHelperTimer';
 import { theme } from '@/constants/theme';
 import { getCategoriesWithItems, consumableItems, getFavoriteConsumables } from '@/data/consumables';
 import { formatCheckinDate } from '@/utils/time';
+import { fetchTodaysCheckouts } from '@/services/backendApiService';
 import * as Haptics from 'expo-haptics';
 
 export default function ActiveCleaningScreen() {
   const authenticatedCleaner = useAuthStore((state) => state.authenticatedCleaner);
   const properties = usePropertiesStore((state) => state.properties);
+  const setProperties = usePropertiesStore((state) => state.setProperties);
   const activeSessions = useSessionStore((state) => state.activeSessions);
   const stopSession = useSessionStore((state) => state.stopSession);
   const restartSession = useSessionStore((state) => state.restartSession);
@@ -66,6 +68,7 @@ export default function ActiveCleaningScreen() {
 
   // Success celebration modal state
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isSyncingAfterComplete, setIsSyncingAfterComplete] = useState(false);
   const [completedSummary, setCompletedSummary] = useState<{
     propertyName: string;
     totalTime: number;
@@ -197,12 +200,22 @@ export default function ActiveCleaningScreen() {
         // Show success celebration
         setCompletedSummary(summaryData);
         setShowSuccessModal(true);
+        setIsSyncingAfterComplete(true);
 
-        // Auto-navigate after 3 seconds
-        setTimeout(() => {
-          setShowSuccessModal(false);
-          router.push('/(main)/properties');
-        }, 3000);
+        // Refresh properties from Airtable before navigating
+        try {
+          const freshProperties = await fetchTodaysCheckouts();
+          if (freshProperties && freshProperties.length > 0) {
+            setProperties(freshProperties);
+          }
+        } catch (refreshError) {
+          console.error('Error refreshing properties:', refreshError);
+        }
+
+        // Navigate after refresh completes
+        setIsSyncingAfterComplete(false);
+        setShowSuccessModal(false);
+        router.push('/(main)/properties');
       } else {
         setIsCompleting(false);
       }
@@ -709,24 +722,34 @@ export default function ActiveCleaningScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.successModalContent}>
-            <View style={styles.successCheckmark}>
-              <Text style={styles.successCheckmarkText}>✓</Text>
-            </View>
-            <Text style={styles.successTitle}>Cleaning Complete!</Text>
-            {completedSummary && (
+            {isSyncingAfterComplete ? (
               <>
-                <Text style={styles.successProperty}>{completedSummary.propertyName}</Text>
-                <Text style={styles.successTime}>
-                  Total time: {formatCompactTime(completedSummary.totalTime)}
-                </Text>
+                <ActivityIndicator size="large" color="#4CAF50" style={{ marginBottom: 20 }} />
+                <Text style={styles.successTitle}>Syncing...</Text>
+                <Text style={styles.successTime}>Updating properties</Text>
+              </>
+            ) : (
+              <>
+                <View style={styles.successCheckmark}>
+                  <Text style={styles.successCheckmarkText}>✓</Text>
+                </View>
+                <Text style={styles.successTitle}>Cleaning Complete!</Text>
+                {completedSummary && (
+                  <>
+                    <Text style={styles.successProperty}>{completedSummary.propertyName}</Text>
+                    <Text style={styles.successTime}>
+                      Total time: {formatCompactTime(completedSummary.totalTime)}
+                    </Text>
+                  </>
+                )}
+                <TouchableOpacity
+                  style={styles.successButton}
+                  onPress={handleDismissSuccess}
+                >
+                  <Text style={styles.successButtonText}>Back to Properties</Text>
+                </TouchableOpacity>
               </>
             )}
-            <TouchableOpacity
-              style={styles.successButton}
-              onPress={handleDismissSuccess}
-            >
-              <Text style={styles.successButtonText}>Back to Properties</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
