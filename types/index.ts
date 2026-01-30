@@ -14,6 +14,7 @@ export interface Cleaner {
 export interface Property {
   id: string;
   propertyRecordId?: string; // Airtable Property record ID (for updating status)
+  propertyStatus?: string; // "Ready for guests" or "Needs Cleaning" from Airtable
   name: string;
   address: string;
   checkoutDate?: string;

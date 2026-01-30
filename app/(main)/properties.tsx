@@ -177,8 +177,8 @@ export default function PropertiesScreen() {
       status = PropertyStatus.COMPLETED;
     } else if (propertySessions.length > 0) {
       status = PropertyStatus.IN_PROGRESS;
-    } else if (propertyCompletedSessions.length > 0 || (property.cleaningTime && property.cleaningTime > 0)) {
-      // Property was cleaned (either locally completed or synced to Airtable)
+    } else if (propertyCompletedSessions.length > 0 || property.propertyStatus === 'Ready for guests') {
+      // Property was cleaned (either locally completed or marked ready in Airtable)
       status = PropertyStatus.COMPLETED;
     }
 

@@ -115,6 +115,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let propertyName = fields['Property Name'] || fields[PROPERTY_LINK_FIELD];
       let propertyAddress = fields['Address (from Property)'] || '';
       let propertyRecordId: string | undefined;
+      let propertyStatus: string | undefined;
       let nextBookingInfo: NextBookingInfo | undefined;
 
       const propertyId = fields['Property ID'] as string;
@@ -126,6 +127,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const propertyRecord = await base(PROPERTIES_TABLE).find(propertyRecordId);
           propertyName = propertyRecord.fields['Name'] || propertyName;
           propertyAddress = propertyRecord.fields['Address'] || propertyAddress;
+          propertyStatus = (propertyRecord.fields['Status'] as string) || undefined;
 
           // Fetch next booking info for this property using Property Id
           if (propertyId) {
@@ -150,6 +152,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       properties.push({
         id: record.id,
         propertyRecordId,
+        propertyStatus,
         name: String(propertyName || 'Unknown Property'),
         address: String(propertyAddress || ''),
         checkoutDate,
