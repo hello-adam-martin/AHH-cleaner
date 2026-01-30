@@ -19,6 +19,7 @@ import * as Haptics from 'expo-haptics';
 export default function PropertiesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showCompleted, setShowCompleted] = useState(false);
   const authenticatedCleaner = useAuthStore((state) => state.authenticatedCleaner);
   const logout = useAuthStore((state) => state.logout);
   const properties = usePropertiesStore((state) => state.properties);
@@ -161,13 +162,6 @@ export default function PropertiesScreen() {
       .map((session) => cleaners.find((c) => c.id === session.cleanerId))
       .filter((c) => c !== undefined);
 
-    let status = PropertyStatus.PENDING;
-    if (propertySessions.some((s) => s.status === 'completed')) {
-      status = PropertyStatus.COMPLETED;
-    } else if (propertySessions.length > 0) {
-      status = PropertyStatus.IN_PROGRESS;
-    }
-
     // Determine sync status from completed sessions for this property
     const propertyCompletedSessions = completedSessions.filter(
       (s) => s.propertyId === property.id
@@ -176,6 +170,16 @@ export default function PropertiesScreen() {
     if (propertyCompletedSessions.length > 0) {
       const hasUnsynced = propertyCompletedSessions.some((s) => s.syncedToAirtable === false);
       syncStatus = hasUnsynced ? 'pending' : 'synced';
+    }
+
+    let status = PropertyStatus.PENDING;
+    if (propertySessions.some((s) => s.status === 'completed')) {
+      status = PropertyStatus.COMPLETED;
+    } else if (propertySessions.length > 0) {
+      status = PropertyStatus.IN_PROGRESS;
+    } else if (propertyCompletedSessions.length > 0 || (property.cleaningTime && property.cleaningTime > 0)) {
+      // Property was cleaned (either locally completed or synced to Airtable)
+      status = PropertyStatus.COMPLETED;
     }
 
     return {
@@ -194,16 +198,18 @@ export default function PropertiesScreen() {
   const regularProperties = allPropertiesWithStatus.filter((p) => !p.isBlocked);
   const blockedProperties = allPropertiesWithStatus.filter((p) => p.isBlocked);
 
-  // Sort properties: in-progress first, then overdue pending, then pending, then completed
-  // Within each group, sort by checkout date (oldest first for overdue, next check-in for today)
-  const sortedProperties = [...regularProperties].sort((a, b) => {
+  // Split into pending/active and completed
+  const pendingProperties = regularProperties.filter((p) => p.status !== PropertyStatus.COMPLETED);
+  const completedRegularProperties = regularProperties.filter((p) => p.status === PropertyStatus.COMPLETED);
+
+  // Sort pending: in-progress first, then overdue, then pending by next check-in
+  const sortedPending = [...pendingProperties].sort((a, b) => {
     const statusOrder = {
       [PropertyStatus.IN_PROGRESS]: 0,
       [PropertyStatus.PENDING]: 1,
       [PropertyStatus.COMPLETED]: 2,
     };
 
-    // First sort by status
     const statusDiff = statusOrder[a.status] - statusOrder[b.status];
     if (statusDiff !== 0) return statusDiff;
 
@@ -220,15 +226,25 @@ export default function PropertiesScreen() {
   });
 
   // Apply search filter
-  const filteredProperties = useMemo(() => {
-    if (!searchQuery.trim()) return sortedProperties;
+  const filteredPending = useMemo(() => {
+    if (!searchQuery.trim()) return sortedPending;
     const query = searchQuery.toLowerCase().trim();
-    return sortedProperties.filter(
+    return sortedPending.filter(
       (p) =>
         p.name.toLowerCase().includes(query) ||
         p.address.toLowerCase().includes(query)
     );
-  }, [sortedProperties, searchQuery]);
+  }, [sortedPending, searchQuery]);
+
+  const filteredCompleted = useMemo(() => {
+    if (!searchQuery.trim()) return completedRegularProperties;
+    const query = searchQuery.toLowerCase().trim();
+    return completedRegularProperties.filter(
+      (p) =>
+        p.name.toLowerCase().includes(query) ||
+        p.address.toLowerCase().includes(query)
+    );
+  }, [completedRegularProperties, searchQuery]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -320,9 +336,9 @@ export default function PropertiesScreen() {
           />
         }
       >
-        {/* Regular Properties */}
-        {filteredProperties.length > 0 ? (
-          filteredProperties.map((item) => (
+        {/* Pending / Active Properties */}
+        {filteredPending.length > 0 ? (
+          filteredPending.map((item) => (
             <PropertyCard
               key={item.id}
               property={item}
@@ -330,7 +346,7 @@ export default function PropertiesScreen() {
               canQuickStart={true}
             />
           ))
-        ) : (
+        ) : filteredCompleted.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
               {searchQuery
@@ -338,7 +354,7 @@ export default function PropertiesScreen() {
                 : 'No properties scheduled for today'}
             </Text>
           </View>
-        )}
+        ) : null}
 
         {/* Blocked Dates Section */}
         {blockedProperties.length > 0 && (
@@ -352,6 +368,32 @@ export default function PropertiesScreen() {
                 property={item}
                 onQuickStart={handleQuickStart}
                 canQuickStart={true}
+              />
+            ))}
+          </View>
+        )}
+
+        {/* Completed Section */}
+        {filteredCompleted.length > 0 && (
+          <View style={styles.completedSection}>
+            <TouchableOpacity
+              style={styles.collapsibleHeader}
+              onPress={() => setShowCompleted(!showCompleted)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.collapsibleHeaderText}>
+                Completed ({filteredCompleted.length})
+              </Text>
+              <Text style={styles.collapsibleChevron}>
+                {showCompleted ? '▼' : '▶'}
+              </Text>
+            </TouchableOpacity>
+            {showCompleted && filteredCompleted.map((item) => (
+              <PropertyCard
+                key={item.id}
+                property={item}
+                onQuickStart={handleQuickStart}
+                canQuickStart={false}
               />
             ))}
           </View>
@@ -507,5 +549,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Nunito_700Bold',
     color: '#666',
+  },
+  completedSection: {
+    marginTop: 24,
+  },
+  collapsibleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingVertical: 8,
+  },
+  collapsibleHeaderText: {
+    fontSize: 16,
+    fontFamily: 'Nunito_700Bold',
+    color: '#666',
+  },
+  collapsibleChevron: {
+    fontSize: 12,
+    color: '#999',
   },
 });
